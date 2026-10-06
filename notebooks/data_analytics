@@ -26,7 +26,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 1,
+      "execution_count": 44,
       "id": "c01",
       "metadata": {
         "execution": {
@@ -49,6 +49,7 @@
         "import matplotlib.dates as mdates\n",
         "import matplotlib.pyplot as plt\n",
         "import matplotlib.ticker as mticker\n",
+        "import requests\n",
         "import numpy as np\n",
         "import pandas as pd\n",
         "from matplotlib.lines import Line2D\n",
@@ -74,7 +75,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 2,
+      "execution_count": 45,
       "id": "ypyuVwILFPsW",
       "metadata": {
         "colab": {
@@ -87,29 +88,35 @@
           "shell.execute_reply": "2026-10-06T07:54:12.724544Z"
         },
         "id": "ypyuVwILFPsW",
-        "outputId": "fe0f90f6-3860-4a6b-b1e7-5350bc06e847"
+        "outputId": "1a9518e3-7933-453b-cc70-6804148dfb5a"
       },
       "outputs": [
         {
           "output_type": "stream",
           "name": "stdout",
           "text": [
-            "2025: GitHub, 880 registros\n",
-            "2026: GitHub, 592 registros\n",
-            "Años pendientes: ninguno, los datasets se cargaron correctamente\n"
+            "2025: API de la ARESEP, 880 registros\n",
+            "2026: API de la ARESEP, 592 registros\n"
           ]
         }
       ],
       "source": [
-        "URLS_DATOS = {\n",
-        "    2025: \"https://raw.githubusercontent.com/nico45zh/analisis-electricidad-costarica/refs/heads/main/datos/Datos_Abiertos_ARESEP_Precios_medios_2025.csv\",\n",
-        "    2026: \"https://raw.githubusercontent.com/nico45zh/analisis-electricidad-costarica/refs/heads/main/datos/Datos_Abiertos_ARESEP_Precios_medios_2026.csv\"\n",
+        "# 1.1 Carga de los datos: primero la API de la ARESEP; si falla, el respaldo en GitHub\n",
+        "URLS_API = {\n",
+        "    2025: \"https://datos.aresep.go.cr/ws.datosabiertos/Services/IE/TarifasElectricidad.svc/ObtenerTarifasPreciosMedios/2025\",\n",
+        "    2026: \"https://datos.aresep.go.cr/ws.datosabiertos/Services/IE/TarifasElectricidad.svc/ObtenerTarifasPreciosMedios/2026\",\n",
         "}\n",
+        "URLS_GITHUB = {\n",
+        "    2025: \"https://raw.githubusercontent.com/nico45zh/analisis-electricidad-costarica/refs/heads/main/datos/Datos_Abiertos_ARESEP_Precios_medios_2025.csv\",\n",
+        "    2026: \"https://raw.githubusercontent.com/nico45zh/analisis-electricidad-costarica/refs/heads/main/datos/Datos_Abiertos_ARESEP_Precios_medios_2026.csv\",\n",
+        "}\n",
+        "ANIOS = list(URLS_API)\n",
+        "TIMEOUT_API = 20   # segundos como máximo por año\n",
         "\n",
-        "ANIOS = list(URLS_DATOS)\n",
-        "\n",
-        "\n",
-        "# Encabezados de los CSV de la ARESEP -> nombres de la API (usados en todo el cuaderno)\n",
+        "COLUMNAS_API = [\"id_Mes\", \"mes\", \"anho\", \"empresa\", \"tipoTarifa\", \"abonados\", \"ventas\",\n",
+        "                \"ingresoSinCVG\", \"ingresoConCVG\", \"precioMedioSinCVG\", \"precioMedioConCVG\",\n",
+        "                \"trimestre\", \"sistema\", \"trimestral\"]\n",
+        "# Encabezados de los CSV -> nombres de la API\n",
         "RENOMBRAR_CSV = {\n",
         "    \"Mes\": \"mes\", \"Año\": \"anho\", \"Empresa\": \"empresa\", \"Tarifa\": \"tipoTarifa\",\n",
         "    \"Abonados\": \"abonados\", \"Ventas\": \"ventas\",\n",
@@ -122,42 +129,41 @@
         "NUM_MES = {m: i + 1 for i, m in enumerate(MESES)}\n",
         "NUM_MES[\"Septiembre\"] = 9\n",
         "\n",
-        "COLUMNAS_API = [\n",
-        "    \"id_Mes\", \"mes\", \"anho\", \"empresa\", \"tipoTarifa\", \"abonados\", \"ventas\",\n",
-        "    \"ingresoSinCVG\", \"ingresoConCVG\", \"precioMedioSinCVG\",\n",
-        "    \"precioMedioConCVG\", \"trimestre\", \"sistema\", \"trimestral\"\n",
-        "]\n",
-        "\n",
         "\n",
         "def limpiar_texto(df):\n",
-        "    \"\"\"Quita los espacios de relleno de las columnas de texto.\"\"\"\n",
+        "    \"\"\"Quita los espacios de relleno de las columnas de texto (mes, empresa, etc.).\"\"\"\n",
         "    for col in df.columns:\n",
         "        if df[col].dtype == object or pd.api.types.is_string_dtype(df[col]):\n",
         "            df[col] = df[col].astype(str).str.strip()\n",
         "    return df\n",
         "\n",
         "\n",
-        "datos_por_anio = {}\n",
+        "def cargar_anio_api(anio):\n",
+        "    respuesta = requests.get(URLS_API[anio], timeout=TIMEOUT_API)\n",
+        "    respuesta.raise_for_status()\n",
+        "    df = limpiar_texto(pd.DataFrame(respuesta.json()[\"value\"]))\n",
+        "    print(f\"{anio}: API de la ARESEP, {len(df)} registros\")\n",
+        "    return df[COLUMNAS_API]\n",
         "\n",
-        "for anio in ANIOS:\n",
-        "    df = pd.read_csv(URLS_DATOS[anio], encoding=\"utf-8-sig\")\n",
+        "\n",
+        "def cargar_anio_github(anio):\n",
+        "    df = pd.read_csv(URLS_GITHUB[anio], encoding=\"utf-8-sig\")\n",
         "    df.columns = df.columns.str.strip()\n",
         "    df = limpiar_texto(df.rename(columns=RENOMBRAR_CSV))\n",
         "    df[\"id_Mes\"] = df[\"mes\"].map(NUM_MES)\n",
         "    assert df[\"id_Mes\"].notna().all(), f\"Meses no reconocidos: {df.loc[df['id_Mes'].isna(), 'mes'].unique()}\"\n",
         "    df[\"id_Mes\"] = df[\"id_Mes\"].astype(int)\n",
-        "\n",
-        "    datos_por_anio[anio] = df[COLUMNAS_API]\n",
-        "\n",
-        "    print(f\"{anio}: GitHub, {len(df)} registros\")\n",
+        "    print(f\"{anio}: respaldo en GitHub, {len(df)} registros\")\n",
+        "    return df[COLUMNAS_API]\n",
         "\n",
         "\n",
-        "faltantes = [a for a in ANIOS if a not in datos_por_anio]\n",
-        "\n",
-        "print(\n",
-        "    \"Años pendientes:\",\n",
-        "    faltantes if faltantes else \"ninguno, los datasets se cargaron correctamente\"\n",
-        ")"
+        "datos_por_anio = {}\n",
+        "for anio in ANIOS:\n",
+        "    try:\n",
+        "        datos_por_anio[anio] = cargar_anio_api(anio)\n",
+        "    except Exception as error:\n",
+        "        print(f\"{anio}: la API no respondió ({type(error).__name__}); se usa GitHub.\")\n",
+        "        datos_por_anio[anio] = cargar_anio_github(anio)"
       ]
     },
     {
@@ -174,7 +180,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 3,
+      "execution_count": 83,
       "id": "c05",
       "metadata": {
         "execution": {
@@ -187,7 +193,7 @@
         "colab": {
           "base_uri": "https://localhost:8080/"
         },
-        "outputId": "375069e7-f72c-426c-a34b-e8a8437c89bd"
+        "outputId": "ba5083da-0e6e-42c3-e24a-1b8f94d712fe"
       },
       "outputs": [
         {
@@ -245,7 +251,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 4,
+      "execution_count": 47,
       "id": "c07",
       "metadata": {
         "execution": {
@@ -258,7 +264,7 @@
         "colab": {
           "base_uri": "https://localhost:8080/"
         },
-        "outputId": "da83523e-9f6f-4550-fcb7-75c196c2de8a"
+        "outputId": "599c4ac1-e1ff-4292-d418-15407ff91b8d"
       },
       "outputs": [
         {
@@ -281,7 +287,7 @@
             " 2   anho               1472 non-null   int64  \n",
             " 3   empresa            1472 non-null   object \n",
             " 4   tipoTarifa         1472 non-null   object \n",
-            " 5   abonados           1472 non-null   int64  \n",
+            " 5   abonados           1472 non-null   float64\n",
             " 6   ventas             1472 non-null   float64\n",
             " 7   ingresoSinCVG      1472 non-null   float64\n",
             " 8   ingresoConCVG      1472 non-null   float64\n",
@@ -290,7 +296,7 @@
             " 11  trimestre          1472 non-null   object \n",
             " 12  sistema            1472 non-null   object \n",
             " 13  trimestral         1472 non-null   object \n",
-            "dtypes: float64(5), int64(3), object(6)\n",
+            "dtypes: float64(6), int64(2), object(6)\n",
             "memory usage: 161.1+ KB\n"
           ]
         }
@@ -308,7 +314,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 5,
+      "execution_count": 48,
       "id": "c08",
       "metadata": {
         "execution": {
@@ -320,9 +326,9 @@
         "id": "c08",
         "colab": {
           "base_uri": "https://localhost:8080/",
-          "height": 206
+          "height": 0
         },
-        "outputId": "a80f97ee-38f5-4ff3-af96-8a314e64452c"
+        "outputId": "7b557a8a-0555-4816-b8e2-05b2563151c6"
       },
       "outputs": [
         {
@@ -330,11 +336,11 @@
           "data": {
             "text/plain": [
               "   id_Mes        mes  anho          empresa         tipoTarifa  abonados  \\\n",
-              "0      12  Diciembre  2025             CNFL  Alumbrado Público         0   \n",
-              "1      12  Diciembre  2025      COOPESANTOS        Residencial     49685   \n",
-              "2      12  Diciembre  2025       COOPELESCA        Residencial    108073   \n",
-              "3      12  Diciembre  2025  COOPEGUANACASTE        Residencial     82147   \n",
-              "4      12  Diciembre  2025  COOPEALFARORUIZ        Residencial      6356   \n",
+              "0      12  Diciembre  2025             CNFL  Alumbrado Público       0.0   \n",
+              "1      12  Diciembre  2025      COOPESANTOS        Residencial   49685.0   \n",
+              "2      12  Diciembre  2025       COOPELESCA        Residencial  108073.0   \n",
+              "3      12  Diciembre  2025  COOPEGUANACASTE        Residencial   82147.0   \n",
+              "4      12  Diciembre  2025  COOPEALFARORUIZ        Residencial    6356.0   \n",
               "\n",
               "        ventas  ingresoSinCVG  ingresoConCVG  precioMedioSinCVG  \\\n",
               "0   5221777.24   1.927844e+08   1.927844e+08              36.92   \n",
@@ -352,7 +358,7 @@
             ],
             "text/html": [
               "\n",
-              "  <div id=\"df-a54cbdcc-b12f-43f8-96c4-455e02d1d294\" class=\"colab-df-container\">\n",
+              "  <div id=\"df-36cad03d-dc12-46a7-8ef9-1874444d4e87\" class=\"colab-df-container\">\n",
               "    <div>\n",
               "<style scoped>\n",
               "    .dataframe tbody tr th:only-of-type {\n",
@@ -395,7 +401,7 @@
               "      <td>2025</td>\n",
               "      <td>CNFL</td>\n",
               "      <td>Alumbrado Público</td>\n",
-              "      <td>0</td>\n",
+              "      <td>0.0</td>\n",
               "      <td>5221777.24</td>\n",
               "      <td>1.927844e+08</td>\n",
               "      <td>1.927844e+08</td>\n",
@@ -412,7 +418,7 @@
               "      <td>2025</td>\n",
               "      <td>COOPESANTOS</td>\n",
               "      <td>Residencial</td>\n",
-              "      <td>49685</td>\n",
+              "      <td>49685.0</td>\n",
               "      <td>7043995.00</td>\n",
               "      <td>5.794582e+08</td>\n",
               "      <td>6.415526e+08</td>\n",
@@ -429,7 +435,7 @@
               "      <td>2025</td>\n",
               "      <td>COOPELESCA</td>\n",
               "      <td>Residencial</td>\n",
-              "      <td>108073</td>\n",
+              "      <td>108073.0</td>\n",
               "      <td>19937840.00</td>\n",
               "      <td>1.546824e+09</td>\n",
               "      <td>1.633719e+09</td>\n",
@@ -446,7 +452,7 @@
               "      <td>2025</td>\n",
               "      <td>COOPEGUANACASTE</td>\n",
               "      <td>Residencial</td>\n",
-              "      <td>82147</td>\n",
+              "      <td>82147.0</td>\n",
               "      <td>26467370.00</td>\n",
               "      <td>1.863072e+09</td>\n",
               "      <td>2.180751e+09</td>\n",
@@ -463,7 +469,7 @@
               "      <td>2025</td>\n",
               "      <td>COOPEALFARORUIZ</td>\n",
               "      <td>Residencial</td>\n",
-              "      <td>6356</td>\n",
+              "      <td>6356.0</td>\n",
               "      <td>1543944.00</td>\n",
               "      <td>8.396691e+07</td>\n",
               "      <td>1.061472e+08</td>\n",
@@ -479,7 +485,7 @@
               "    <div class=\"colab-df-buttons\">\n",
               "\n",
               "  <div class=\"colab-df-container\">\n",
-              "    <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-a54cbdcc-b12f-43f8-96c4-455e02d1d294')\"\n",
+              "    <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-36cad03d-dc12-46a7-8ef9-1874444d4e87')\"\n",
               "            title=\"Convert this dataframe to an interactive table.\"\n",
               "            style=\"display:none;\">\n",
               "\n",
@@ -531,12 +537,12 @@
               "\n",
               "    <script>\n",
               "      const buttonEl =\n",
-              "        document.querySelector('#df-a54cbdcc-b12f-43f8-96c4-455e02d1d294 button.colab-df-convert');\n",
+              "        document.querySelector('#df-36cad03d-dc12-46a7-8ef9-1874444d4e87 button.colab-df-convert');\n",
               "      buttonEl.style.display =\n",
               "        google.colab.kernel.accessAllowed ? 'block' : 'none';\n",
               "\n",
               "      async function convertToInteractive(key) {\n",
-              "        const element = document.querySelector('#df-a54cbdcc-b12f-43f8-96c4-455e02d1d294');\n",
+              "        const element = document.querySelector('#df-36cad03d-dc12-46a7-8ef9-1874444d4e87');\n",
               "        const dataTable =\n",
               "          await google.colab.kernel.invokeFunction('convertToInteractive',\n",
               "                                                    [key], {});\n",
@@ -562,11 +568,11 @@
             "application/vnd.google.colaboratory.intrinsic+json": {
               "type": "dataframe",
               "variable_name": "df_raw",
-              "summary": "{\n  \"name\": \"df_raw\",\n  \"rows\": 1472,\n  \"fields\": [\n    {\n      \"column\": \"id_Mes\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 3,\n        \"min\": 1,\n        \"max\": 12,\n        \"num_unique_values\": 12,\n        \"samples\": [\n          2,\n          3,\n          12\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"mes\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 12,\n        \"samples\": [\n          \"Febrero\",\n          \"Marzo\",\n          \"Diciembre\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"anho\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 0,\n        \"min\": 2025,\n        \"max\": 2026,\n        \"num_unique_values\": 2,\n        \"samples\": [\n          2026,\n          2025\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"empresa\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 10,\n        \"samples\": [\n          \"ICE\",\n          \"COOPESANTOS\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"tipoTarifa\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 13,\n        \"samples\": [\n          \"Industrial\",\n          \"Residencial horaria\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"abonados\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 231847,\n        \"min\": 0,\n        \"max\": 1790412,\n        \"num_unique_values\": 684,\n        \"samples\": [\n          120268,\n          538\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"ventas\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 119047459.53456694,\n        \"min\": 0.0,\n        \"max\": 833571960.58,\n        \"num_unique_values\": 1380,\n        \"samples\": [\n          382911654.0,\n          12503403.6\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"ingresoSinCVG\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 5753772423.019008,\n        \"min\": -115904929.23,\n        \"max\": 33530904080.0,\n        \"num_unique_values\": 1390,\n        \"samples\": [\n          1432016000.0,\n          634708591.15\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"ingresoConCVG\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 6780650483.821228,\n        \"min\": 45.02,\n        \"max\": 36205987336.47,\n        \"num_unique_values\": 1390,\n        \"samples\": [\n          1834097000.0,\n          634708591.15\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"precioMedioSinCVG\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 3852414.206039283,\n        \"min\": -236.77,\n        \"max\": 124181785.01,\n        \"num_unique_values\": 1178,\n        \"samples\": [\n          141.8,\n          50.11\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"precioMedioConCVG\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 3655600.3207001872,\n        \"min\": 0.0,\n        \"max\": 116269992.45,\n        \"num_unique_values\": 1161,\n        \"samples\": [\n          114.02,\n          91.99\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"trimestre\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 4,\n        \"samples\": [\n          \"III Trimestre\",\n          \"I Trimestre\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"sistema\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"Generacion\",\n          \"Distribucion\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"trimestral\",\n      \"properties\": {\n        \"dtype\": \"object\",\n        \"num_unique_values\": 7,\n        \"samples\": [\n          \"2025 4\",\n          \"2025 3\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    }\n  ]\n}"
+              "summary": "{\n  \"name\": \"df_raw\",\n  \"rows\": 1472,\n  \"fields\": [\n    {\n      \"column\": \"id_Mes\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 3,\n        \"min\": 1,\n        \"max\": 12,\n        \"num_unique_values\": 12,\n        \"samples\": [\n          2,\n          3,\n          12\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"mes\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 12,\n        \"samples\": [\n          \"Febrero\",\n          \"Marzo\",\n          \"Diciembre\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"anho\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 0,\n        \"min\": 2025,\n        \"max\": 2026,\n        \"num_unique_values\": 2,\n        \"samples\": [\n          2026,\n          2025\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"empresa\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 10,\n        \"samples\": [\n          \"ICE\",\n          \"COOPESANTOS\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"tipoTarifa\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 13,\n        \"samples\": [\n          \"Industrial\",\n          \"Residencial horaria\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"abonados\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 231847.30317620645,\n        \"min\": 0.0,\n        \"max\": 1790412.0,\n        \"num_unique_values\": 684,\n        \"samples\": [\n          120268.0,\n          538.0\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"ventas\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 119047459.53456694,\n        \"min\": 0.0,\n        \"max\": 833571960.58,\n        \"num_unique_values\": 1380,\n        \"samples\": [\n          382911654.0,\n          12503403.6\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"ingresoSinCVG\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 5753772423.019008,\n        \"min\": -115904929.23,\n        \"max\": 33530904080.0,\n        \"num_unique_values\": 1390,\n        \"samples\": [\n          1432016000.0,\n          634708591.15\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"ingresoConCVG\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 6780650483.821228,\n        \"min\": 45.02,\n        \"max\": 36205987336.47,\n        \"num_unique_values\": 1390,\n        \"samples\": [\n          1834097000.0,\n          634708591.15\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"precioMedioSinCVG\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 3852414.206039283,\n        \"min\": -236.77,\n        \"max\": 124181785.01,\n        \"num_unique_values\": 1178,\n        \"samples\": [\n          141.8,\n          50.11\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"precioMedioConCVG\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 3655600.3207001872,\n        \"min\": 0.0,\n        \"max\": 116269992.45,\n        \"num_unique_values\": 1161,\n        \"samples\": [\n          114.02,\n          91.99\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"trimestre\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 4,\n        \"samples\": [\n          \"III Trimestre\",\n          \"I Trimestre\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"sistema\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"Generacion\",\n          \"Distribucion\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"trimestral\",\n      \"properties\": {\n        \"dtype\": \"object\",\n        \"num_unique_values\": 7,\n        \"samples\": [\n          \"2025 4\",\n          \"2025 3\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    }\n  ]\n}"
             }
           },
           "metadata": {},
-          "execution_count": 5
+          "execution_count": 48
         }
       ],
       "source": [
@@ -587,7 +593,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 6,
+      "execution_count": 49,
       "id": "c10",
       "metadata": {
         "execution": {
@@ -600,7 +606,7 @@
         "colab": {
           "base_uri": "https://localhost:8080/"
         },
-        "outputId": "e56aa55f-4e6b-4840-9fe6-d4e8e647e704"
+        "outputId": "12ee515c-81f4-4d03-a42d-f10b75537950"
       },
       "outputs": [
         {
@@ -637,7 +643,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 7,
+      "execution_count": 50,
       "id": "c13",
       "metadata": {
         "execution": {
@@ -650,7 +656,7 @@
         "colab": {
           "base_uri": "https://localhost:8080/"
         },
-        "outputId": "84d8d1d6-2aec-4ed0-8b1c-dcb893dcdd7f"
+        "outputId": "5765838f-82cc-4c38-92a0-df27604def65"
       },
       "outputs": [
         {
@@ -683,7 +689,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 8,
+      "execution_count": 51,
       "id": "c15",
       "metadata": {
         "execution": {
@@ -696,7 +702,7 @@
         "colab": {
           "base_uri": "https://localhost:8080/"
         },
-        "outputId": "49705743-e084-4a58-e77c-6d2322de2ed8"
+        "outputId": "d8f5369b-c50b-45e7-85f2-9a6dfabe13a6"
       },
       "outputs": [
         {
@@ -752,7 +758,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 9,
+      "execution_count": 52,
       "id": "c18",
       "metadata": {
         "execution": {
@@ -765,7 +771,7 @@
         "colab": {
           "base_uri": "https://localhost:8080/"
         },
-        "outputId": "f757a37f-d9f6-4b99-d5bf-6853001a9006"
+        "outputId": "2ab8303c-98f0-4427-b603-e86cbd589792"
       },
       "outputs": [
         {
@@ -815,7 +821,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 10,
+      "execution_count": 53,
       "id": "c20",
       "metadata": {
         "execution": {
@@ -827,9 +833,9 @@
         "id": "c20",
         "colab": {
           "base_uri": "https://localhost:8080/",
-          "height": 223
+          "height": 0
         },
-        "outputId": "c1b566dc-6c05-4bec-a3bf-f0bcca3d436e"
+        "outputId": "349cbf2c-dfa9-4a63-cfda-6e43d9996154"
       },
       "outputs": [
         {
@@ -852,7 +858,7 @@
             ],
             "text/html": [
               "\n",
-              "  <div id=\"df-41912472-7642-4e3f-9a0b-f526ae9a1af4\" class=\"colab-df-container\">\n",
+              "  <div id=\"df-cede8e3e-c411-4b3a-bf88-34d7ea7fa9a6\" class=\"colab-df-container\">\n",
               "    <div>\n",
               "<style scoped>\n",
               "    .dataframe tbody tr th:only-of-type {\n",
@@ -919,7 +925,7 @@
               "    <div class=\"colab-df-buttons\">\n",
               "\n",
               "  <div class=\"colab-df-container\">\n",
-              "    <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-41912472-7642-4e3f-9a0b-f526ae9a1af4')\"\n",
+              "    <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-cede8e3e-c411-4b3a-bf88-34d7ea7fa9a6')\"\n",
               "            title=\"Convert this dataframe to an interactive table.\"\n",
               "            style=\"display:none;\">\n",
               "\n",
@@ -971,12 +977,12 @@
               "\n",
               "    <script>\n",
               "      const buttonEl =\n",
-              "        document.querySelector('#df-41912472-7642-4e3f-9a0b-f526ae9a1af4 button.colab-df-convert');\n",
+              "        document.querySelector('#df-cede8e3e-c411-4b3a-bf88-34d7ea7fa9a6 button.colab-df-convert');\n",
               "      buttonEl.style.display =\n",
               "        google.colab.kernel.accessAllowed ? 'block' : 'none';\n",
               "\n",
               "      async function convertToInteractive(key) {\n",
-              "        const element = document.querySelector('#df-41912472-7642-4e3f-9a0b-f526ae9a1af4');\n",
+              "        const element = document.querySelector('#df-cede8e3e-c411-4b3a-bf88-34d7ea7fa9a6');\n",
               "        const dataTable =\n",
               "          await google.colab.kernel.invokeFunction('convertToInteractive',\n",
               "                                                    [key], {});\n",
@@ -1005,7 +1011,7 @@
             }
           },
           "metadata": {},
-          "execution_count": 10
+          "execution_count": 53
         }
       ],
       "source": [
@@ -1033,7 +1039,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 11,
+      "execution_count": 54,
       "id": "c22",
       "metadata": {
         "execution": {
@@ -1045,9 +1051,9 @@
         "id": "c22",
         "colab": {
           "base_uri": "https://localhost:8080/",
-          "height": 408
+          "height": 0
         },
-        "outputId": "adb7c591-51d7-4a34-d483-eb4944a3a458"
+        "outputId": "ea6cb2ee-f63c-4562-dff6-3966baa5745f"
       },
       "outputs": [
         {
@@ -1067,10 +1073,10 @@
           "data": {
             "text/plain": [
               "         fecha          empresa                          tipoTarifa  abonados  \\\n",
-              "389 2025-06-01       COOPELESCA  Ventas al servicio de Distribución         0   \n",
-              "968 2026-02-01  COOPEALFARORUIZ  Ventas al servicio de Distribución         0   \n",
-              "981 2026-02-01       COOPELESCA  Ventas al servicio de Distribución         0   \n",
-              "988 2026-02-01      COOPESANTOS  Ventas al servicio de Distribución         0   \n",
+              "389 2025-06-01       COOPELESCA  Ventas al servicio de Distribución       0.0   \n",
+              "968 2026-02-01  COOPEALFARORUIZ  Ventas al servicio de Distribución       0.0   \n",
+              "981 2026-02-01       COOPELESCA  Ventas al servicio de Distribución       0.0   \n",
+              "988 2026-02-01      COOPESANTOS  Ventas al servicio de Distribución       0.0   \n",
               "\n",
               "     ventas  ingresoSinCVG  ingresoConCVG  \n",
               "389     0.0   3.441049e+07    57671866.54  \n",
@@ -1080,7 +1086,7 @@
             ],
             "text/html": [
               "\n",
-              "  <div id=\"df-8f4f8911-d9e1-4040-95fe-34f1bc31f036\" class=\"colab-df-container\">\n",
+              "  <div id=\"df-7254fd83-ba1a-4407-b0ce-fa2c661d3a22\" class=\"colab-df-container\">\n",
               "    <div>\n",
               "<style scoped>\n",
               "    .dataframe tbody tr th:only-of-type {\n",
@@ -1114,7 +1120,7 @@
               "      <td>2025-06-01</td>\n",
               "      <td>COOPELESCA</td>\n",
               "      <td>Ventas al servicio de Distribución</td>\n",
-              "      <td>0</td>\n",
+              "      <td>0.0</td>\n",
               "      <td>0.0</td>\n",
               "      <td>3.441049e+07</td>\n",
               "      <td>57671866.54</td>\n",
@@ -1124,7 +1130,7 @@
               "      <td>2026-02-01</td>\n",
               "      <td>COOPEALFARORUIZ</td>\n",
               "      <td>Ventas al servicio de Distribución</td>\n",
-              "      <td>0</td>\n",
+              "      <td>0.0</td>\n",
               "      <td>0.0</td>\n",
               "      <td>7.766631e+06</td>\n",
               "      <td>7163161.88</td>\n",
@@ -1134,7 +1140,7 @@
               "      <td>2026-02-01</td>\n",
               "      <td>COOPELESCA</td>\n",
               "      <td>Ventas al servicio de Distribución</td>\n",
-              "      <td>0</td>\n",
+              "      <td>0.0</td>\n",
               "      <td>0.0</td>\n",
               "      <td>-1.159049e+08</td>\n",
               "      <td>45.02</td>\n",
@@ -1144,7 +1150,7 @@
               "      <td>2026-02-01</td>\n",
               "      <td>COOPESANTOS</td>\n",
               "      <td>Ventas al servicio de Distribución</td>\n",
-              "      <td>0</td>\n",
+              "      <td>0.0</td>\n",
               "      <td>0.0</td>\n",
               "      <td>4.427321e+07</td>\n",
               "      <td>40833173.38</td>\n",
@@ -1155,7 +1161,7 @@
               "    <div class=\"colab-df-buttons\">\n",
               "\n",
               "  <div class=\"colab-df-container\">\n",
-              "    <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-8f4f8911-d9e1-4040-95fe-34f1bc31f036')\"\n",
+              "    <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-7254fd83-ba1a-4407-b0ce-fa2c661d3a22')\"\n",
               "            title=\"Convert this dataframe to an interactive table.\"\n",
               "            style=\"display:none;\">\n",
               "\n",
@@ -1207,12 +1213,12 @@
               "\n",
               "    <script>\n",
               "      const buttonEl =\n",
-              "        document.querySelector('#df-8f4f8911-d9e1-4040-95fe-34f1bc31f036 button.colab-df-convert');\n",
+              "        document.querySelector('#df-7254fd83-ba1a-4407-b0ce-fa2c661d3a22 button.colab-df-convert');\n",
               "      buttonEl.style.display =\n",
               "        google.colab.kernel.accessAllowed ? 'block' : 'none';\n",
               "\n",
               "      async function convertToInteractive(key) {\n",
-              "        const element = document.querySelector('#df-8f4f8911-d9e1-4040-95fe-34f1bc31f036');\n",
+              "        const element = document.querySelector('#df-7254fd83-ba1a-4407-b0ce-fa2c661d3a22');\n",
               "        const dataTable =\n",
               "          await google.colab.kernel.invokeFunction('convertToInteractive',\n",
               "                                                    [key], {});\n",
@@ -1237,7 +1243,7 @@
             ],
             "application/vnd.google.colaboratory.intrinsic+json": {
               "type": "dataframe",
-              "summary": "{\n  \"name\": \"                                           \\\"ingresoSinCVG\\\", \\\"ingresoConCVG\\\"]])\",\n  \"rows\": 4,\n  \"fields\": [\n    {\n      \"column\": \"fecha\",\n      \"properties\": {\n        \"dtype\": \"date\",\n        \"min\": \"2025-06-01 00:00:00\",\n        \"max\": \"2026-02-01 00:00:00\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"2026-02-01 00:00:00\",\n          \"2025-06-01 00:00:00\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"empresa\",\n      \"properties\": {\n        \"dtype\": \"string\",\n        \"num_unique_values\": 3,\n        \"samples\": [\n          \"COOPELESCA\",\n          \"COOPEALFARORUIZ\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"tipoTarifa\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 1,\n        \"samples\": [\n          \"Ventas al servicio de Distribuci\\u00f3n\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"abonados\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 0,\n        \"min\": 0,\n        \"max\": 0,\n        \"num_unique_values\": 1,\n        \"samples\": [\n          0\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"ventas\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 0.0,\n        \"min\": 0.0,\n        \"max\": 0.0,\n        \"num_unique_values\": 1,\n        \"samples\": [\n          0.0\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"ingresoSinCVG\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 73985536.5376338,\n        \"min\": -115904929.23,\n        \"max\": 44273212.23,\n        \"num_unique_values\": 4,\n        \"samples\": [\n          7766630.9\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"ingresoConCVG\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 27405951.48324973,\n        \"min\": 45.02,\n        \"max\": 57671866.54,\n        \"num_unique_values\": 4,\n        \"samples\": [\n          7163161.88\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    }\n  ]\n}"
+              "summary": "{\n  \"name\": \"                                           \\\"ingresoSinCVG\\\", \\\"ingresoConCVG\\\"]])\",\n  \"rows\": 4,\n  \"fields\": [\n    {\n      \"column\": \"fecha\",\n      \"properties\": {\n        \"dtype\": \"date\",\n        \"min\": \"2025-06-01 00:00:00\",\n        \"max\": \"2026-02-01 00:00:00\",\n        \"num_unique_values\": 2,\n        \"samples\": [\n          \"2026-02-01 00:00:00\",\n          \"2025-06-01 00:00:00\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"empresa\",\n      \"properties\": {\n        \"dtype\": \"string\",\n        \"num_unique_values\": 3,\n        \"samples\": [\n          \"COOPELESCA\",\n          \"COOPEALFARORUIZ\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"tipoTarifa\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 1,\n        \"samples\": [\n          \"Ventas al servicio de Distribuci\\u00f3n\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"abonados\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 0.0,\n        \"min\": 0.0,\n        \"max\": 0.0,\n        \"num_unique_values\": 1,\n        \"samples\": [\n          0.0\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"ventas\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 0.0,\n        \"min\": 0.0,\n        \"max\": 0.0,\n        \"num_unique_values\": 1,\n        \"samples\": [\n          0.0\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"ingresoSinCVG\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 73985536.5376338,\n        \"min\": -115904929.23,\n        \"max\": 44273212.23,\n        \"num_unique_values\": 4,\n        \"samples\": [\n          7766630.9\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"ingresoConCVG\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 27405951.48324973,\n        \"min\": 45.02,\n        \"max\": 57671866.54,\n        \"num_unique_values\": 4,\n        \"samples\": [\n          7163161.88\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    }\n  ]\n}"
             }
           },
           "metadata": {}
@@ -1264,7 +1270,7 @@
             ],
             "text/html": [
               "\n",
-              "  <div id=\"df-a14c35bd-3dc3-4201-ae89-44864cf96a52\" class=\"colab-df-container\">\n",
+              "  <div id=\"df-6b9f1ae8-2cfe-49c3-b133-d1daa30ab17f\" class=\"colab-df-container\">\n",
               "    <div>\n",
               "<style scoped>\n",
               "    .dataframe tbody tr th:only-of-type {\n",
@@ -1316,7 +1322,7 @@
               "    <div class=\"colab-df-buttons\">\n",
               "\n",
               "  <div class=\"colab-df-container\">\n",
-              "    <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-a14c35bd-3dc3-4201-ae89-44864cf96a52')\"\n",
+              "    <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-6b9f1ae8-2cfe-49c3-b133-d1daa30ab17f')\"\n",
               "            title=\"Convert this dataframe to an interactive table.\"\n",
               "            style=\"display:none;\">\n",
               "\n",
@@ -1368,12 +1374,12 @@
               "\n",
               "    <script>\n",
               "      const buttonEl =\n",
-              "        document.querySelector('#df-a14c35bd-3dc3-4201-ae89-44864cf96a52 button.colab-df-convert');\n",
+              "        document.querySelector('#df-6b9f1ae8-2cfe-49c3-b133-d1daa30ab17f button.colab-df-convert');\n",
               "      buttonEl.style.display =\n",
               "        google.colab.kernel.accessAllowed ? 'block' : 'none';\n",
               "\n",
               "      async function convertToInteractive(key) {\n",
-              "        const element = document.querySelector('#df-a14c35bd-3dc3-4201-ae89-44864cf96a52');\n",
+              "        const element = document.querySelector('#df-6b9f1ae8-2cfe-49c3-b133-d1daa30ab17f');\n",
               "        const dataTable =\n",
               "          await google.colab.kernel.invokeFunction('convertToInteractive',\n",
               "                                                    [key], {});\n",
@@ -1432,7 +1438,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 12,
+      "execution_count": 55,
       "id": "c23",
       "metadata": {
         "execution": {
@@ -1444,9 +1450,9 @@
         "id": "c23",
         "colab": {
           "base_uri": "https://localhost:8080/",
-          "height": 380
+          "height": 0
         },
-        "outputId": "b299a684-2a32-4313-c572-d83d6eeab072"
+        "outputId": "c92ea9ae-75b0-4784-c6c2-258aba961b09"
       },
       "outputs": [
         {
@@ -1473,20 +1479,20 @@
               "1432 2026-08-01      COOPESANTOS  Ventas al servicio de Distribución   \n",
               "\n",
               "      abonados    ventas  precioMedioConCVG  \n",
-              "1351         0       1.0       1.162700e+08  \n",
-              "1425         0       1.0       7.152011e+07  \n",
-              "759          0       1.0       2.454235e+07  \n",
-              "1190         0       1.0       1.792869e+07  \n",
-              "1412         0       1.0       1.028765e+07  \n",
-              "1338         0       1.0       5.487773e+06  \n",
-              "1116         0       1.0       2.454655e+06  \n",
-              "33           0    1500.0       2.988194e+04  \n",
-              "14           0    1500.0       9.781140e+03  \n",
-              "1432         0  190931.0       2.495000e+02  "
+              "1351       0.0       1.0       1.162700e+08  \n",
+              "1425       0.0       1.0       7.152011e+07  \n",
+              "759        0.0       1.0       2.454235e+07  \n",
+              "1190       0.0       1.0       1.792869e+07  \n",
+              "1412       0.0       1.0       1.028765e+07  \n",
+              "1338       0.0       1.0       5.487773e+06  \n",
+              "1116       0.0       1.0       2.454655e+06  \n",
+              "33         0.0    1500.0       2.988194e+04  \n",
+              "14         0.0    1500.0       9.781140e+03  \n",
+              "1432       0.0  190931.0       2.495000e+02  "
             ],
             "text/html": [
               "\n",
-              "  <div id=\"df-2559254f-de47-4d8f-a3c7-91ee0d251fe7\" class=\"colab-df-container\">\n",
+              "  <div id=\"df-fe8c98da-e12e-491b-9065-06b230d5e870\" class=\"colab-df-container\">\n",
               "    <div>\n",
               "<style scoped>\n",
               "    .dataframe tbody tr th:only-of-type {\n",
@@ -1519,7 +1525,7 @@
               "      <td>2026-07-01</td>\n",
               "      <td>COOPELESCA</td>\n",
               "      <td>Ventas al servicio de Distribución</td>\n",
-              "      <td>0</td>\n",
+              "      <td>0.0</td>\n",
               "      <td>1.0</td>\n",
               "      <td>1.162700e+08</td>\n",
               "    </tr>\n",
@@ -1528,7 +1534,7 @@
               "      <td>2026-08-01</td>\n",
               "      <td>COOPELESCA</td>\n",
               "      <td>Ventas al servicio de Distribución</td>\n",
-              "      <td>0</td>\n",
+              "      <td>0.0</td>\n",
               "      <td>1.0</td>\n",
               "      <td>7.152011e+07</td>\n",
               "    </tr>\n",
@@ -1537,7 +1543,7 @@
               "      <td>2025-11-01</td>\n",
               "      <td>COOPELESCA</td>\n",
               "      <td>Ventas al servicio de Distribución</td>\n",
-              "      <td>0</td>\n",
+              "      <td>0.0</td>\n",
               "      <td>1.0</td>\n",
               "      <td>2.454235e+07</td>\n",
               "    </tr>\n",
@@ -1546,7 +1552,7 @@
               "      <td>2026-05-01</td>\n",
               "      <td>COOPEALFARORUIZ</td>\n",
               "      <td>Ventas al servicio de Distribución</td>\n",
-              "      <td>0</td>\n",
+              "      <td>0.0</td>\n",
               "      <td>1.0</td>\n",
               "      <td>1.792869e+07</td>\n",
               "    </tr>\n",
@@ -1555,7 +1561,7 @@
               "      <td>2026-08-01</td>\n",
               "      <td>COOPEALFARORUIZ</td>\n",
               "      <td>Ventas al servicio de Distribución</td>\n",
-              "      <td>0</td>\n",
+              "      <td>0.0</td>\n",
               "      <td>1.0</td>\n",
               "      <td>1.028765e+07</td>\n",
               "    </tr>\n",
@@ -1564,7 +1570,7 @@
               "      <td>2026-07-01</td>\n",
               "      <td>COOPEALFARORUIZ</td>\n",
               "      <td>Ventas al servicio de Distribución</td>\n",
-              "      <td>0</td>\n",
+              "      <td>0.0</td>\n",
               "      <td>1.0</td>\n",
               "      <td>5.487773e+06</td>\n",
               "    </tr>\n",
@@ -1573,7 +1579,7 @@
               "      <td>2026-04-01</td>\n",
               "      <td>COOPEALFARORUIZ</td>\n",
               "      <td>Ventas al servicio de Distribución</td>\n",
-              "      <td>0</td>\n",
+              "      <td>0.0</td>\n",
               "      <td>1.0</td>\n",
               "      <td>2.454655e+06</td>\n",
               "    </tr>\n",
@@ -1582,7 +1588,7 @@
               "      <td>2025-01-01</td>\n",
               "      <td>COOPESANTOS</td>\n",
               "      <td>Ventas al servicio de Distribución</td>\n",
-              "      <td>0</td>\n",
+              "      <td>0.0</td>\n",
               "      <td>1500.0</td>\n",
               "      <td>2.988194e+04</td>\n",
               "    </tr>\n",
@@ -1591,7 +1597,7 @@
               "      <td>2025-01-01</td>\n",
               "      <td>COOPEALFARORUIZ</td>\n",
               "      <td>Ventas al servicio de Distribución</td>\n",
-              "      <td>0</td>\n",
+              "      <td>0.0</td>\n",
               "      <td>1500.0</td>\n",
               "      <td>9.781140e+03</td>\n",
               "    </tr>\n",
@@ -1600,7 +1606,7 @@
               "      <td>2026-08-01</td>\n",
               "      <td>COOPESANTOS</td>\n",
               "      <td>Ventas al servicio de Distribución</td>\n",
-              "      <td>0</td>\n",
+              "      <td>0.0</td>\n",
               "      <td>190931.0</td>\n",
               "      <td>2.495000e+02</td>\n",
               "    </tr>\n",
@@ -1610,7 +1616,7 @@
               "    <div class=\"colab-df-buttons\">\n",
               "\n",
               "  <div class=\"colab-df-container\">\n",
-              "    <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-2559254f-de47-4d8f-a3c7-91ee0d251fe7')\"\n",
+              "    <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-fe8c98da-e12e-491b-9065-06b230d5e870')\"\n",
               "            title=\"Convert this dataframe to an interactive table.\"\n",
               "            style=\"display:none;\">\n",
               "\n",
@@ -1662,12 +1668,12 @@
               "\n",
               "    <script>\n",
               "      const buttonEl =\n",
-              "        document.querySelector('#df-2559254f-de47-4d8f-a3c7-91ee0d251fe7 button.colab-df-convert');\n",
+              "        document.querySelector('#df-fe8c98da-e12e-491b-9065-06b230d5e870 button.colab-df-convert');\n",
               "      buttonEl.style.display =\n",
               "        google.colab.kernel.accessAllowed ? 'block' : 'none';\n",
               "\n",
               "      async function convertToInteractive(key) {\n",
-              "        const element = document.querySelector('#df-2559254f-de47-4d8f-a3c7-91ee0d251fe7');\n",
+              "        const element = document.querySelector('#df-fe8c98da-e12e-491b-9065-06b230d5e870');\n",
               "        const dataTable =\n",
               "          await google.colab.kernel.invokeFunction('convertToInteractive',\n",
               "                                                    [key], {});\n",
@@ -1692,7 +1698,7 @@
             ],
             "application/vnd.google.colaboratory.intrinsic+json": {
               "type": "dataframe",
-              "summary": "{\n  \"name\": \"display(ejemplos_extremos\",\n  \"rows\": 10,\n  \"fields\": [\n    {\n      \"column\": \"fecha\",\n      \"properties\": {\n        \"dtype\": \"date\",\n        \"min\": \"2025-01-01 00:00:00\",\n        \"max\": \"2026-08-01 00:00:00\",\n        \"num_unique_values\": 6,\n        \"samples\": [\n          \"2026-07-01 00:00:00\",\n          \"2026-08-01 00:00:00\",\n          \"2025-01-01 00:00:00\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"empresa\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 3,\n        \"samples\": [\n          \"COOPELESCA\",\n          \"COOPEALFARORUIZ\",\n          \"COOPESANTOS\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"tipoTarifa\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 1,\n        \"samples\": [\n          \"Ventas al servicio de Distribuci\\u00f3n\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"abonados\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 0,\n        \"min\": 0,\n        \"max\": 0,\n        \"num_unique_values\": 1,\n        \"samples\": [\n          0\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"ventas\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 60275.250111099136,\n        \"min\": 1.0,\n        \"max\": 190931.0,\n        \"num_unique_values\": 3,\n        \"samples\": [\n          1.0\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"precioMedioConCVG\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 38762535.56148999,\n        \"min\": 249.5,\n        \"max\": 116269992.45,\n        \"num_unique_values\": 10,\n        \"samples\": [\n          9781.14\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    }\n  ]\n}"
+              "summary": "{\n  \"name\": \"display(ejemplos_extremos\",\n  \"rows\": 10,\n  \"fields\": [\n    {\n      \"column\": \"fecha\",\n      \"properties\": {\n        \"dtype\": \"date\",\n        \"min\": \"2025-01-01 00:00:00\",\n        \"max\": \"2026-08-01 00:00:00\",\n        \"num_unique_values\": 6,\n        \"samples\": [\n          \"2026-07-01 00:00:00\",\n          \"2026-08-01 00:00:00\",\n          \"2025-01-01 00:00:00\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"empresa\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 3,\n        \"samples\": [\n          \"COOPELESCA\",\n          \"COOPEALFARORUIZ\",\n          \"COOPESANTOS\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"tipoTarifa\",\n      \"properties\": {\n        \"dtype\": \"category\",\n        \"num_unique_values\": 1,\n        \"samples\": [\n          \"Ventas al servicio de Distribuci\\u00f3n\"\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"abonados\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 0.0,\n        \"min\": 0.0,\n        \"max\": 0.0,\n        \"num_unique_values\": 1,\n        \"samples\": [\n          0.0\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"ventas\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 60275.250111099136,\n        \"min\": 1.0,\n        \"max\": 190931.0,\n        \"num_unique_values\": 3,\n        \"samples\": [\n          1.0\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    },\n    {\n      \"column\": \"precioMedioConCVG\",\n      \"properties\": {\n        \"dtype\": \"number\",\n        \"std\": 38762535.56148999,\n        \"min\": 249.5,\n        \"max\": 116269992.45,\n        \"num_unique_values\": 10,\n        \"samples\": [\n          9781.14\n        ],\n        \"semantic_type\": \"\",\n        \"description\": \"\"\n      }\n    }\n  ]\n}"
             }
           },
           "metadata": {}
@@ -1748,7 +1754,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 13,
+      "execution_count": 56,
       "id": "c26",
       "metadata": {
         "execution": {
@@ -1761,7 +1767,7 @@
         "colab": {
           "base_uri": "https://localhost:8080/"
         },
-        "outputId": "0a406855-274a-44ae-d6ce-a0583d385279"
+        "outputId": "5fbd1834-6cf8-4e74-f1fd-a95e457b6fed"
       },
       "outputs": [
         {
@@ -1784,7 +1790,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 14,
+      "execution_count": 57,
       "id": "c27",
       "metadata": {
         "execution": {
@@ -1797,7 +1803,7 @@
         "colab": {
           "base_uri": "https://localhost:8080/"
         },
-        "outputId": "44b035a3-1351-447e-a2dd-b827a78590ed"
+        "outputId": "8368453a-944e-42f5-b285-4d9a0a28db0b"
       },
       "outputs": [
         {
@@ -1869,7 +1875,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 15,
+      "execution_count": 58,
       "id": "c30",
       "metadata": {
         "execution": {
@@ -1882,7 +1888,7 @@
         "colab": {
           "base_uri": "https://localhost:8080/"
         },
-        "outputId": "ae1c6fc5-0d75-4a36-8833-a01f5856d5b8"
+        "outputId": "cdb2a05a-9615-40c1-a8f7-91a81ce0fa3f"
       },
       "outputs": [
         {
@@ -1915,7 +1921,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 16,
+      "execution_count": 59,
       "id": "c32",
       "metadata": {
         "execution": {
@@ -1928,7 +1934,7 @@
         "colab": {
           "base_uri": "https://localhost:8080/"
         },
-        "outputId": "9c344440-3708-4eb6-e2a5-dbdd72c0ab14"
+        "outputId": "436da32a-3c1b-482d-b1cc-d035b5b73e93"
       },
       "outputs": [
         {
@@ -2030,7 +2036,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 17,
+      "execution_count": 60,
       "id": "c34",
       "metadata": {
         "execution": {
@@ -2043,7 +2049,7 @@
         "colab": {
           "base_uri": "https://localhost:8080/"
         },
-        "outputId": "9757074a-5679-47c2-b691-3b21617d3f07"
+        "outputId": "ea8a9294-6b8c-40c5-e23e-ef86068b6f9f"
       },
       "outputs": [
         {
@@ -2089,7 +2095,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 18,
+      "execution_count": 61,
       "id": "c36",
       "metadata": {
         "execution": {
@@ -2172,7 +2178,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 19,
+      "execution_count": 62,
       "id": "c38",
       "metadata": {
         "execution": {
@@ -2186,7 +2192,7 @@
           "base_uri": "https://localhost:8080/",
           "height": 206
         },
-        "outputId": "02d9a213-bd62-445a-a81d-d5eea6a04c1d"
+        "outputId": "6f0fc957-9658-4cc8-ffac-f1355d49c099"
       },
       "outputs": [
         {
@@ -2202,7 +2208,7 @@
             ],
             "text/html": [
               "\n",
-              "  <div id=\"df-b39fa2ad-5757-4818-9367-187a73f25488\" class=\"colab-df-container\">\n",
+              "  <div id=\"df-79bc4c6e-7d4f-46b0-8bb5-a5d763b1e8dd\" class=\"colab-df-container\">\n",
               "    <div>\n",
               "<style scoped>\n",
               "    .dataframe tbody tr th:only-of-type {\n",
@@ -2278,7 +2284,7 @@
               "    <div class=\"colab-df-buttons\">\n",
               "\n",
               "  <div class=\"colab-df-container\">\n",
-              "    <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-b39fa2ad-5757-4818-9367-187a73f25488')\"\n",
+              "    <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-79bc4c6e-7d4f-46b0-8bb5-a5d763b1e8dd')\"\n",
               "            title=\"Convert this dataframe to an interactive table.\"\n",
               "            style=\"display:none;\">\n",
               "\n",
@@ -2330,12 +2336,12 @@
               "\n",
               "    <script>\n",
               "      const buttonEl =\n",
-              "        document.querySelector('#df-b39fa2ad-5757-4818-9367-187a73f25488 button.colab-df-convert');\n",
+              "        document.querySelector('#df-79bc4c6e-7d4f-46b0-8bb5-a5d763b1e8dd button.colab-df-convert');\n",
               "      buttonEl.style.display =\n",
               "        google.colab.kernel.accessAllowed ? 'block' : 'none';\n",
               "\n",
               "      async function convertToInteractive(key) {\n",
-              "        const element = document.querySelector('#df-b39fa2ad-5757-4818-9367-187a73f25488');\n",
+              "        const element = document.querySelector('#df-79bc4c6e-7d4f-46b0-8bb5-a5d763b1e8dd');\n",
               "        const dataTable =\n",
               "          await google.colab.kernel.invokeFunction('convertToInteractive',\n",
               "                                                    [key], {});\n",
@@ -2355,7 +2361,7 @@
               "  </div>\n",
               "\n",
               "\n",
-              "  <div id=\"id_a49feec9-927a-4b0c-b95a-7619c02d3ad5\">\n",
+              "  <div id=\"id_6e1cebfc-6d54-422c-9e8b-d27766d81bed\">\n",
               "    <style>\n",
               "      .colab-df-generate {\n",
               "        background-color: #E8F0FE;\n",
@@ -2399,7 +2405,7 @@
               "    <script>\n",
               "      (() => {\n",
               "      const buttonEl =\n",
-              "        document.querySelector('#id_a49feec9-927a-4b0c-b95a-7619c02d3ad5 button.colab-df-generate');\n",
+              "        document.querySelector('#id_6e1cebfc-6d54-422c-9e8b-d27766d81bed button.colab-df-generate');\n",
               "      buttonEl.style.display =\n",
               "        google.colab.kernel.accessAllowed ? 'block' : 'none';\n",
               "\n",
@@ -2420,7 +2426,7 @@
             }
           },
           "metadata": {},
-          "execution_count": 19
+          "execution_count": 62
         }
       ],
       "source": [
@@ -2435,7 +2441,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 20,
+      "execution_count": 63,
       "id": "c39",
       "metadata": {
         "execution": {
@@ -2449,7 +2455,7 @@
           "base_uri": "https://localhost:8080/",
           "height": 363
         },
-        "outputId": "68bfec24-190a-4e9f-ff41-ff8101132ab8"
+        "outputId": "796c28ef-c36a-441a-e879-76ac3364e13b"
       },
       "outputs": [
         {
@@ -2470,7 +2476,7 @@
             ],
             "text/html": [
               "\n",
-              "  <div id=\"df-dba32695-3f2b-4bf8-8f2f-c6eb0955d9fd\" class=\"colab-df-container\">\n",
+              "  <div id=\"df-50cb4d0b-092f-4537-9a8c-efdd163beb14\" class=\"colab-df-container\">\n",
               "    <div>\n",
               "<style scoped>\n",
               "    .dataframe tbody tr th:only-of-type {\n",
@@ -2583,7 +2589,7 @@
               "    <div class=\"colab-df-buttons\">\n",
               "\n",
               "  <div class=\"colab-df-container\">\n",
-              "    <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-dba32695-3f2b-4bf8-8f2f-c6eb0955d9fd')\"\n",
+              "    <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-50cb4d0b-092f-4537-9a8c-efdd163beb14')\"\n",
               "            title=\"Convert this dataframe to an interactive table.\"\n",
               "            style=\"display:none;\">\n",
               "\n",
@@ -2635,12 +2641,12 @@
               "\n",
               "    <script>\n",
               "      const buttonEl =\n",
-              "        document.querySelector('#df-dba32695-3f2b-4bf8-8f2f-c6eb0955d9fd button.colab-df-convert');\n",
+              "        document.querySelector('#df-50cb4d0b-092f-4537-9a8c-efdd163beb14 button.colab-df-convert');\n",
               "      buttonEl.style.display =\n",
               "        google.colab.kernel.accessAllowed ? 'block' : 'none';\n",
               "\n",
               "      async function convertToInteractive(key) {\n",
-              "        const element = document.querySelector('#df-dba32695-3f2b-4bf8-8f2f-c6eb0955d9fd');\n",
+              "        const element = document.querySelector('#df-50cb4d0b-092f-4537-9a8c-efdd163beb14');\n",
               "        const dataTable =\n",
               "          await google.colab.kernel.invokeFunction('convertToInteractive',\n",
               "                                                    [key], {});\n",
@@ -2660,7 +2666,7 @@
               "  </div>\n",
               "\n",
               "\n",
-              "  <div id=\"id_4dfba5fa-bff1-4e18-8e11-8e986a6b442b\">\n",
+              "  <div id=\"id_de7c9fbd-9784-44b4-9848-b21748552c06\">\n",
               "    <style>\n",
               "      .colab-df-generate {\n",
               "        background-color: #E8F0FE;\n",
@@ -2704,7 +2710,7 @@
               "    <script>\n",
               "      (() => {\n",
               "      const buttonEl =\n",
-              "        document.querySelector('#id_4dfba5fa-bff1-4e18-8e11-8e986a6b442b button.colab-df-generate');\n",
+              "        document.querySelector('#id_de7c9fbd-9784-44b4-9848-b21748552c06 button.colab-df-generate');\n",
               "      buttonEl.style.display =\n",
               "        google.colab.kernel.accessAllowed ? 'block' : 'none';\n",
               "\n",
@@ -2725,7 +2731,7 @@
             }
           },
           "metadata": {},
-          "execution_count": 20
+          "execution_count": 63
         }
       ],
       "source": [
@@ -2752,7 +2758,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 21,
+      "execution_count": 64,
       "id": "c41",
       "metadata": {
         "collapsed": true,
@@ -2767,7 +2773,7 @@
           "base_uri": "https://localhost:8080/",
           "height": 206
         },
-        "outputId": "e44f5781-d18c-4b78-c8ba-4031d5443721"
+        "outputId": "525024d3-46c8-4d71-becc-0116e2d48b8a"
       },
       "outputs": [
         {
@@ -2783,7 +2789,7 @@
             ],
             "text/html": [
               "\n",
-              "  <div id=\"df-6da83dd6-d376-4767-a947-3610983cc311\" class=\"colab-df-container\">\n",
+              "  <div id=\"df-8cc9d1e6-c27e-4439-9661-ef137bcc28ad\" class=\"colab-df-container\">\n",
               "    <div>\n",
               "<style scoped>\n",
               "    .dataframe tbody tr th:only-of-type {\n",
@@ -2856,7 +2862,7 @@
               "    <div class=\"colab-df-buttons\">\n",
               "\n",
               "  <div class=\"colab-df-container\">\n",
-              "    <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-6da83dd6-d376-4767-a947-3610983cc311')\"\n",
+              "    <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-8cc9d1e6-c27e-4439-9661-ef137bcc28ad')\"\n",
               "            title=\"Convert this dataframe to an interactive table.\"\n",
               "            style=\"display:none;\">\n",
               "\n",
@@ -2908,12 +2914,12 @@
               "\n",
               "    <script>\n",
               "      const buttonEl =\n",
-              "        document.querySelector('#df-6da83dd6-d376-4767-a947-3610983cc311 button.colab-df-convert');\n",
+              "        document.querySelector('#df-8cc9d1e6-c27e-4439-9661-ef137bcc28ad button.colab-df-convert');\n",
               "      buttonEl.style.display =\n",
               "        google.colab.kernel.accessAllowed ? 'block' : 'none';\n",
               "\n",
               "      async function convertToInteractive(key) {\n",
-              "        const element = document.querySelector('#df-6da83dd6-d376-4767-a947-3610983cc311');\n",
+              "        const element = document.querySelector('#df-8cc9d1e6-c27e-4439-9661-ef137bcc28ad');\n",
               "        const dataTable =\n",
               "          await google.colab.kernel.invokeFunction('convertToInteractive',\n",
               "                                                    [key], {});\n",
@@ -2943,7 +2949,7 @@
             }
           },
           "metadata": {},
-          "execution_count": 21
+          "execution_count": 64
         }
       ],
       "source": [
@@ -2963,7 +2969,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 22,
+      "execution_count": 65,
       "id": "c42",
       "metadata": {
         "execution": {
@@ -2977,7 +2983,7 @@
           "base_uri": "https://localhost:8080/",
           "height": 737
         },
-        "outputId": "99660828-e5ef-41c9-bb4f-0a7e6277085e"
+        "outputId": "1605d004-18e1-438b-d36c-c93bdc9803b8"
       },
       "outputs": [
         {
@@ -3040,7 +3046,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 23,
+      "execution_count": 66,
       "id": "c44",
       "metadata": {
         "collapsed": true,
@@ -3055,7 +3061,7 @@
           "base_uri": "https://localhost:8080/",
           "height": 300
         },
-        "outputId": "0a5979a2-5120-42a2-c556-766a559365d5"
+        "outputId": "7aa8561d-1a34-48d7-e785-46233f93f5ee"
       },
       "outputs": [
         {
@@ -3094,7 +3100,7 @@
             ],
             "text/html": [
               "\n",
-              "  <div id=\"df-0ad1407c-fe8d-41e9-a144-dc6c392961ff\" class=\"colab-df-container\">\n",
+              "  <div id=\"df-e985966b-3e93-4b35-9803-872d8ab21476\" class=\"colab-df-container\">\n",
               "    <div>\n",
               "<style scoped>\n",
               "    .dataframe tbody tr th:only-of-type {\n",
@@ -3245,7 +3251,7 @@
               "    <div class=\"colab-df-buttons\">\n",
               "\n",
               "  <div class=\"colab-df-container\">\n",
-              "    <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-0ad1407c-fe8d-41e9-a144-dc6c392961ff')\"\n",
+              "    <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-e985966b-3e93-4b35-9803-872d8ab21476')\"\n",
               "            title=\"Convert this dataframe to an interactive table.\"\n",
               "            style=\"display:none;\">\n",
               "\n",
@@ -3297,12 +3303,12 @@
               "\n",
               "    <script>\n",
               "      const buttonEl =\n",
-              "        document.querySelector('#df-0ad1407c-fe8d-41e9-a144-dc6c392961ff button.colab-df-convert');\n",
+              "        document.querySelector('#df-e985966b-3e93-4b35-9803-872d8ab21476 button.colab-df-convert');\n",
               "      buttonEl.style.display =\n",
               "        google.colab.kernel.accessAllowed ? 'block' : 'none';\n",
               "\n",
               "      async function convertToInteractive(key) {\n",
-              "        const element = document.querySelector('#df-0ad1407c-fe8d-41e9-a144-dc6c392961ff');\n",
+              "        const element = document.querySelector('#df-e985966b-3e93-4b35-9803-872d8ab21476');\n",
               "        const dataTable =\n",
               "          await google.colab.kernel.invokeFunction('convertToInteractive',\n",
               "                                                    [key], {});\n",
@@ -3322,7 +3328,7 @@
               "  </div>\n",
               "\n",
               "\n",
-              "  <div id=\"id_d289b357-a729-40d8-b152-4608807c4183\">\n",
+              "  <div id=\"id_6ea7e748-9da0-42a3-99f5-a1078093fbc3\">\n",
               "    <style>\n",
               "      .colab-df-generate {\n",
               "        background-color: #E8F0FE;\n",
@@ -3366,7 +3372,7 @@
               "    <script>\n",
               "      (() => {\n",
               "      const buttonEl =\n",
-              "        document.querySelector('#id_d289b357-a729-40d8-b152-4608807c4183 button.colab-df-generate');\n",
+              "        document.querySelector('#id_6ea7e748-9da0-42a3-99f5-a1078093fbc3 button.colab-df-generate');\n",
               "      buttonEl.style.display =\n",
               "        google.colab.kernel.accessAllowed ? 'block' : 'none';\n",
               "\n",
@@ -3387,7 +3393,7 @@
             }
           },
           "metadata": {},
-          "execution_count": 23
+          "execution_count": 66
         }
       ],
       "source": [
@@ -3441,7 +3447,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 24,
+      "execution_count": 67,
       "id": "c47",
       "metadata": {
         "collapsed": true,
@@ -3455,7 +3461,7 @@
         "colab": {
           "base_uri": "https://localhost:8080/"
         },
-        "outputId": "655d77d9-9757-4d44-8db9-0f165ed51555"
+        "outputId": "17dc3240-308f-4b4c-df5a-63c9e086746b"
       },
       "outputs": [
         {
@@ -3516,7 +3522,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 25,
+      "execution_count": 68,
       "id": "zNcBejDUFqfN",
       "metadata": {
         "execution": {
@@ -3530,7 +3536,7 @@
           "base_uri": "https://localhost:8080/",
           "height": 912
         },
-        "outputId": "716932de-81a0-4c56-b8c7-fdd4c77e186e"
+        "outputId": "1cae9f33-90b4-41aa-e8f8-3249c491eef3"
       },
       "outputs": [
         {
@@ -3594,7 +3600,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 26,
+      "execution_count": 69,
       "id": "c52",
       "metadata": {
         "execution": {
@@ -3607,7 +3613,7 @@
         "colab": {
           "base_uri": "https://localhost:8080/"
         },
-        "outputId": "b6750cd2-97e0-4760-9ce7-4d8bbc6ff6d6"
+        "outputId": "770bf8dd-763d-4312-95e8-bf06a2352012"
       },
       "outputs": [
         {
@@ -3665,7 +3671,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 27,
+      "execution_count": 70,
       "id": "c57",
       "metadata": {
         "execution": {
@@ -3678,7 +3684,7 @@
         "colab": {
           "base_uri": "https://localhost:8080/"
         },
-        "outputId": "5a89717c-5a38-4f92-ec99-35bb9c67474a"
+        "outputId": "b27f55b6-dea2-4bd6-d1ad-2650a8deef91"
       },
       "outputs": [
         {
@@ -3785,7 +3791,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 28,
+      "execution_count": 71,
       "id": "c59",
       "metadata": {
         "execution": {
@@ -3799,7 +3805,7 @@
           "base_uri": "https://localhost:8080/",
           "height": 300
         },
-        "outputId": "3ed35533-f0ee-4a24-cd94-ceeb0bda7f98"
+        "outputId": "0a52a338-b933-4961-de46-6b62390c0f1c"
       },
       "outputs": [
         {
@@ -3828,7 +3834,7 @@
             ],
             "text/html": [
               "\n",
-              "  <div id=\"df-899851ee-f477-4e1d-a729-5c116f0da1a2\" class=\"colab-df-container\">\n",
+              "  <div id=\"df-0ac222c8-6c51-4573-a3fa-423fb8a76924\" class=\"colab-df-container\">\n",
               "    <div>\n",
               "<style scoped>\n",
               "    .dataframe tbody tr th:only-of-type {\n",
@@ -3970,7 +3976,7 @@
               "    <div class=\"colab-df-buttons\">\n",
               "\n",
               "  <div class=\"colab-df-container\">\n",
-              "    <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-899851ee-f477-4e1d-a729-5c116f0da1a2')\"\n",
+              "    <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-0ac222c8-6c51-4573-a3fa-423fb8a76924')\"\n",
               "            title=\"Convert this dataframe to an interactive table.\"\n",
               "            style=\"display:none;\">\n",
               "\n",
@@ -4022,12 +4028,12 @@
               "\n",
               "    <script>\n",
               "      const buttonEl =\n",
-              "        document.querySelector('#df-899851ee-f477-4e1d-a729-5c116f0da1a2 button.colab-df-convert');\n",
+              "        document.querySelector('#df-0ac222c8-6c51-4573-a3fa-423fb8a76924 button.colab-df-convert');\n",
               "      buttonEl.style.display =\n",
               "        google.colab.kernel.accessAllowed ? 'block' : 'none';\n",
               "\n",
               "      async function convertToInteractive(key) {\n",
-              "        const element = document.querySelector('#df-899851ee-f477-4e1d-a729-5c116f0da1a2');\n",
+              "        const element = document.querySelector('#df-0ac222c8-6c51-4573-a3fa-423fb8a76924');\n",
               "        const dataTable =\n",
               "          await google.colab.kernel.invokeFunction('convertToInteractive',\n",
               "                                                    [key], {});\n",
@@ -4056,7 +4062,7 @@
             }
           },
           "metadata": {},
-          "execution_count": 28
+          "execution_count": 71
         }
       ],
       "source": [
@@ -4117,7 +4123,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 29,
+      "execution_count": 72,
       "id": "rmQBG6342826",
       "metadata": {
         "collapsed": true,
@@ -4132,7 +4138,7 @@
           "base_uri": "https://localhost:8080/",
           "height": 1000
         },
-        "outputId": "8a922910-3dd0-42c9-8bbe-5b46ba4f9138"
+        "outputId": "55c70fb0-a3c2-4a34-948a-8413a7b22c07"
       },
       "outputs": [
         {
@@ -4232,7 +4238,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 30,
+      "execution_count": 73,
       "id": "c67",
       "metadata": {
         "execution": {
@@ -4245,7 +4251,7 @@
         "colab": {
           "base_uri": "https://localhost:8080/"
         },
-        "outputId": "aeb9c3b7-460b-4ec8-fe09-f2b024ef4bda"
+        "outputId": "ecc1d00e-06f3-45fc-870f-3c4dac3aadef"
       },
       "outputs": [
         {
@@ -4315,7 +4321,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 31,
+      "execution_count": 74,
       "id": "c69",
       "metadata": {
         "execution": {
@@ -4329,7 +4335,7 @@
           "base_uri": "https://localhost:8080/",
           "height": 1000
         },
-        "outputId": "d56c7beb-9884-4747-bcbd-eeb37e9edef0"
+        "outputId": "1f0fe808-bb19-4513-a6d3-36477521e886"
       },
       "outputs": [
         {
@@ -4464,7 +4470,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 32,
+      "execution_count": 75,
       "id": "c71",
       "metadata": {
         "execution": {
@@ -4477,7 +4483,7 @@
         "colab": {
           "base_uri": "https://localhost:8080/"
         },
-        "outputId": "709e4403-ad68-423d-a4cb-898d67f109d1"
+        "outputId": "2a687841-7df5-4f2f-dad1-88024b882dc4"
       },
       "outputs": [
         {
@@ -4574,7 +4580,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 33,
+      "execution_count": 76,
       "id": "pron46_code",
       "metadata": {
         "execution": {
@@ -4588,7 +4594,7 @@
           "base_uri": "https://localhost:8080/",
           "height": 1000
         },
-        "outputId": "cbd9bf55-41bd-412c-b687-5bd528a89185"
+        "outputId": "ec32aa17-0823-465b-fed6-b74964ccd130"
       },
       "outputs": [
         {
@@ -4979,7 +4985,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 34,
+      "execution_count": 77,
       "id": "c75",
       "metadata": {
         "execution": {
@@ -5058,7 +5064,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 35,
+      "execution_count": 78,
       "id": "c77",
       "metadata": {
         "execution": {
@@ -5071,7 +5077,7 @@
         "colab": {
           "base_uri": "https://localhost:8080/"
         },
-        "outputId": "7f0aa4bd-2590-4149-c85d-26e7c6df56af"
+        "outputId": "4239ddab-d10e-4ce2-ec2d-c75f85831e31"
       },
       "outputs": [
         {
@@ -5094,7 +5100,7 @@
             "\\texttt{anho} & Entero & A\\~no del registro \\\\\n",
             "\\texttt{empresa} & Texto & Operador de distribuci\\'on \\\\\n",
             "\\texttt{tipoTarifa} & Texto & Categor\\'ia tarifaria (residencial, comercial, industrial, alumbrado p\\'ublico, entre otras) \\\\\n",
-            "\\texttt{abonados} & Entero & Cantidad de abonados facturados \\\\\n",
+            "\\texttt{abonados} & Real & Cantidad de abonados facturados \\\\\n",
             "\\texttt{ventas} & Real & Energ\\'ia vendida (kWh) \\\\\n",
             "\\texttt{ingreso\\-Sin\\-CVG} & Real & Ingreso sin el CVG (\\crc) \\\\\n",
             "\\texttt{ingreso\\-Con\\-CVG} & Real & Ingreso con el CVG (\\crc) \\\\\n",
@@ -5171,7 +5177,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 36,
+      "execution_count": 79,
       "id": "c79",
       "metadata": {
         "execution": {
@@ -5184,7 +5190,7 @@
         "colab": {
           "base_uri": "https://localhost:8080/"
         },
-        "outputId": "a4e9258f-4735-4f9b-db6b-ceac6ffd3adb"
+        "outputId": "bf10af2f-79f2-4aa6-b799-d3a59d131884"
       },
       "outputs": [
         {
@@ -5263,7 +5269,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 37,
+      "execution_count": 80,
       "id": "c81",
       "metadata": {
         "collapsed": true,
@@ -5277,7 +5283,7 @@
         "colab": {
           "base_uri": "https://localhost:8080/"
         },
-        "outputId": "d1c91f7c-f834-4d48-c42a-09d1f5e3decb"
+        "outputId": "e7af5395-d464-4861-eaff-3dc2b7af6813"
       },
       "outputs": [
         {
@@ -5378,7 +5384,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 38,
+      "execution_count": 81,
       "id": "c83",
       "metadata": {
         "execution": {
@@ -5391,7 +5397,7 @@
         "colab": {
           "base_uri": "https://localhost:8080/"
         },
-        "outputId": "f3ff79dd-74be-4aae-cb2d-85e874ee6727"
+        "outputId": "00e7152f-302d-4af5-fd18-c723ba1a10b4"
       },
       "outputs": [
         {
@@ -5507,7 +5513,7 @@
     },
     {
       "cell_type": "code",
-      "execution_count": 39,
+      "execution_count": 82,
       "id": "c85",
       "metadata": {
         "collapsed": true,
@@ -5522,7 +5528,7 @@
           "base_uri": "https://localhost:8080/",
           "height": 269
         },
-        "outputId": "29c40e62-2e50-402e-c14a-e7c7cb490ce5"
+        "outputId": "958075ac-045e-48b4-8407-e6e8f4185d42"
       },
       "outputs": [
         {
@@ -5549,7 +5555,7 @@
             ],
             "text/html": [
               "\n",
-              "  <div id=\"df-4a7a326b-70fb-4f88-bd0f-5a307a2953ea\" class=\"colab-df-container\">\n",
+              "  <div id=\"df-62c7f056-8883-492b-b0fd-56a14b045853\" class=\"colab-df-container\">\n",
               "    <div>\n",
               "<style scoped>\n",
               "    .dataframe tbody tr th:only-of-type {\n",
@@ -5630,7 +5636,7 @@
               "    <div class=\"colab-df-buttons\">\n",
               "\n",
               "  <div class=\"colab-df-container\">\n",
-              "    <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-4a7a326b-70fb-4f88-bd0f-5a307a2953ea')\"\n",
+              "    <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-62c7f056-8883-492b-b0fd-56a14b045853')\"\n",
               "            title=\"Convert this dataframe to an interactive table.\"\n",
               "            style=\"display:none;\">\n",
               "\n",
@@ -5682,12 +5688,12 @@
               "\n",
               "    <script>\n",
               "      const buttonEl =\n",
-              "        document.querySelector('#df-4a7a326b-70fb-4f88-bd0f-5a307a2953ea button.colab-df-convert');\n",
+              "        document.querySelector('#df-62c7f056-8883-492b-b0fd-56a14b045853 button.colab-df-convert');\n",
               "      buttonEl.style.display =\n",
               "        google.colab.kernel.accessAllowed ? 'block' : 'none';\n",
               "\n",
               "      async function convertToInteractive(key) {\n",
-              "        const element = document.querySelector('#df-4a7a326b-70fb-4f88-bd0f-5a307a2953ea');\n",
+              "        const element = document.querySelector('#df-62c7f056-8883-492b-b0fd-56a14b045853');\n",
               "        const dataTable =\n",
               "          await google.colab.kernel.invokeFunction('convertToInteractive',\n",
               "                                                    [key], {});\n",
@@ -5707,7 +5713,7 @@
               "  </div>\n",
               "\n",
               "\n",
-              "  <div id=\"id_fc9b99e8-e3f0-438c-97a5-2fa89bffa5db\">\n",
+              "  <div id=\"id_1feecd4c-2bcb-4bf1-9c36-48c4644230d8\">\n",
               "    <style>\n",
               "      .colab-df-generate {\n",
               "        background-color: #E8F0FE;\n",
@@ -5751,7 +5757,7 @@
               "    <script>\n",
               "      (() => {\n",
               "      const buttonEl =\n",
-              "        document.querySelector('#id_fc9b99e8-e3f0-438c-97a5-2fa89bffa5db button.colab-df-generate');\n",
+              "        document.querySelector('#id_1feecd4c-2bcb-4bf1-9c36-48c4644230d8 button.colab-df-generate');\n",
               "      buttonEl.style.display =\n",
               "        google.colab.kernel.accessAllowed ? 'block' : 'none';\n",
               "\n",
@@ -5772,7 +5778,7 @@
             }
           },
           "metadata": {},
-          "execution_count": 39
+          "execution_count": 82
         }
       ],
       "source": [
