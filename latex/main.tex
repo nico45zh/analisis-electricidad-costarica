@@ -141,7 +141,7 @@ En cuanto al periodo de an\'alisis, se utilizar\'an los datos mensuales de preci
 
 La Autoridad Reguladora de los Servicios P\'ublicos (ARESEP), creada mediante la Ley N.\textsuperscript{o} 7593 de 1996, fija los precios de los servicios p\'ublicos bajo el principio de servicio al costo, seg\'un el cual se contemplan \'unicamente los costos necesarios para prestar el servicio~\cite{r3}. En consecuencia, el precio no surge del equilibrio entre oferta y demanda, sino de un acto administrativo emitido en momentos discretos, por lo que la serie hist\'orica de precios se comporta como una funci\'on escalonada con saltos en las fechas de resoluci\'on tarifaria.
 
-La normativa distingue entre ajustes ordinarios, solicitados por las empresas, y ajustes extraordinarios, aplicables ante eventos ajenos a ellas~\cite{r4}. Entre estos \'ultimos destaca el Costo Variable de Generaci\'on, de frecuencia trimestral y com\'un a todo el sistema, que introduce variaciones compartidas entre las ocho empresas.
+La normativa distingue entre ajustes ordinarios, solicitados por las empresas, y ajustes extraordinarios, aplicables ante eventos ajenos a ellas~\cite{r4}. Entre estos \'ultimos destaca el Costo Variable de Generaci\'on, de frecuencia trimestral y com\'un a todo el sistema, que introduce variaciones compartidas entre todas las empresas distribuidoras.
 
 % ---------------------------------
 \subsection{Tarifas y precios medios de electricidad}
@@ -261,9 +261,9 @@ El precio medio de cada registro se obtiene aplicando la Ecuaci\'on~\eqref{eq:pr
 \subsection{Limpieza y preparaci\'on de los datos}
 \label{sec:limpieza}
 
-Sobre el conjunto combinado de 1472 registros se aplic\'o un proceso de limpieza reproducible en Python (Pandas). Primero se eliminaron los espacios de relleno de las columnas de texto y se verific\'o que \texttt{empresa} y \texttt{tipoTarifa} no tuvieran variantes de escritura. Adem\'as de los cuatro operadores y las cuatro cooperativas, la ARESEP publica dos filas que no corresponden a distribuidoras: \texttt{TOTAL NACIONAL}, un agregado, y \texttt{Usuarios Directos}, clientes que compran directamente en generaci\'on. Para separarlas del resto, se agreg\'o la columna \texttt{grupo}, con los valores \emph{Operador} (ICE, CNFL, ESPH y JASEC), \emph{Cooperativa} y \emph{Otro}; solo el grupo \emph{Operador} se conserva para el an\'alisis. Tambi\'en se construy\'o la columna \texttt{fecha} a partir de \texttt{anho} e \texttt{id\_Mes}, y los datos se ordenaron cronol\'ogicamente.
+Sobre el conjunto combinado de 1472 registros se aplic\'o un proceso de limpieza reproducible en Python (Pandas). Primero se eliminaron los espacios de relleno de las columnas de texto y se verific\'o que \texttt{empresa} y \texttt{tipoTarifa} no tuvieran variantes de escritura. Luego, conforme a la delimitaci\'on de la Secci\'on~\ref{sec:delimitacion}, se eliminaron del conjunto los 752 registros que no corresponden a los cuatro operadores: 496 de las cooperativas y 256 de dos categor\'ias que no son distribuidoras, \texttt{TOTAL NACIONAL}, un agregado, y \texttt{Usuarios Directos}, clientes que compran directamente en generaci\'on. Quedaron 720 registros del ICE, la CNFL, la ESPH y JASEC. Tambi\'en se construy\'o la columna \texttt{fecha} a partir de \texttt{anho} e \texttt{id\_Mes}, y los datos se ordenaron cronol\'ogicamente.
 
-Luego se revisaron cinco tipos de anomal\'ia, resumidos en la Tabla~\ref{tab:anomalias}. Los precios medios at\'ipicos se identificaron con el rango intercuart\'ilico (RIC) calculado por tipo de tarifa, ya que el nivel de precio de una tarifa residencial difiere mucho del de una industrial. Estos casos se concentran en la categor\'ia \emph{Ventas al servicio de Distribuci\'on} de las cooperativas, con ventas casi nulas en ciertos meses, donde la Ecuaci\'on~\eqref{eq:precio_medio} produce valores extremos al dividir entre un denominador cercano a cero. Por tratarse de un efecto aritm\'etico y no de errores de captura, no se corrigieron; en cualquier caso, quedan fuera del an\'alisis al excluirse las cooperativas.
+Sobre esos 720 registros se revisaron cinco tipos de anomal\'ia, resumidos en la Tabla~\ref{tab:anomalias}. Los precios medios at\'ipicos se identificaron con el rango intercuart\'ilico (RIC) calculado por tipo de tarifa, ya que el nivel de precio de una tarifa residencial difiere mucho del de una industrial. Los 12 casos detectados son del ICE: nueve en la tarifa preferencial de 2025, donde su precio supera con amplitud al de los otros tres operadores; uno en la tarifa residencial horaria de enero de 2025, con ventas casi nulas, y dos en alumbrado p\'ublico en abril y mayo de 2026. Como reflejan diferencias de nivel entre operadores o meses puntuales, y no errores de c\'alculo, se conservaron.
 
 \begin{table}[htbp]
 \caption{Anomal\'ias detectadas y acciones aplicadas}
@@ -277,20 +277,20 @@ Luego se revisaron cinco tipos de anomal\'ia, resumidos en la Tabla~\ref{tab:ano
 \hline
 Valores nulos & 0 & No requiri\'o acci\'on \\
 Duplicados (fecha, empresa, tarifa) & 0 & No requiri\'o acci\'on \\
-Ventas $\leq$ 0 & 4 & Eliminadas: el precio medio no est\'a definido \\
-Ingresos negativos & 2 & Conservadas: cociente definido \\
-Precio medio at\'ipico (RIC por tarifa) & 114 & Conservadas: se deben a ventas cercanas a cero, no a errores \\
+Ventas $\leq$ 0 & 0 & No requiri\'o acci\'on \\
+Ingresos negativos & 0 & No requiri\'o acci\'on \\
+Precio medio at\'ipico (RIC por tarifa) & 12 & Conservadas: diferencias de nivel entre operadores, no errores \\
 \hline
 \end{tabular}
 \end{table}
 \FloatBarrier
 
-Finalmente, se recalcul\'o el precio medio como ingreso entre ventas y se compar\'o con el publicado por la ARESEP: la diferencia m\'axima fue de 0,0052\,\crc/kWh y la promedio de 0,0024\,\crc/kWh, atribuibles al redondeo a dos decimales, por lo que se conservaron los valores oficiales. El conjunto limpio qued\'o con 1468 registros y 16 variables, de los cuales 720 corresponden a los cuatro operadores; los 492 de las cooperativas y los 256 del grupo \emph{Otro} se excluyeron del an\'alisis.
+Finalmente, se recalcul\'o el precio medio como ingreso entre ventas y se compar\'o con el publicado por la ARESEP: la diferencia m\'axima fue de 0,0052\,\crc/kWh y la promedio de 0,0024\,\crc/kWh, atribuibles al redondeo a dos decimales, por lo que se conservaron los valores oficiales. El conjunto limpio qued\'o con 720 registros y 15 variables, correspondientes a los cuatro operadores del estudio.
 % ---------------------------------
 \section{An\'alisis exploratorio de datos}
 \label{sec:eda}
 
-El an\'alisis exploratorio se realiz\'o sobre el conjunto limpio descrito en la Secci\'on~\ref{sec:limpieza} y se centr\'o en el grupo \emph{Operador} (ICE, CNFL, ESPH y JASEC), conforme a la delimitaci\'on del estudio. Adem\'as, se conservaron \'unicamente los registros cuyo \texttt{sistema} corresponde a distribuci\'on, ya que los registros de generaci\'on, como \emph{Ventas al servicio de Distribuci\'on}, representan ventas mayoristas entre empresas y no ventas al usuario final. Este filtro excluye tambi\'en buena parte de los precios at\'ipicos identificados en la Tabla~\ref{tab:anomalias}. Tras aplicarlo, el an\'alisis de los operadores comprende 640 registros.
+El an\'alisis exploratorio se realiz\'o sobre el conjunto limpio descrito en la Secci\'on~\ref{sec:limpieza} y comprende los cuatro operadores del estudio (ICE, CNFL, ESPH y JASEC). Adem\'as, se conservaron \'unicamente los registros cuyo \texttt{sistema} corresponde a distribuci\'on, ya que los registros de generaci\'on, como \emph{Ventas al servicio de Distribuci\'on}, representan ventas mayoristas entre empresas y no ventas al usuario final. Tras aplicarlo, el an\'alisis de los operadores comprende 640 registros.
 
 
 % ---------------------------------
@@ -381,7 +381,7 @@ El efecto del CVG se calcul\'o, para cada operador y mes, como la diferencia ent
 
 \begin{figure}[!htb]
 \centering
-\includegraphics[width=\columnwidth]{figuras/03_efecto_cvg_operadores.png}
+\includegraphics[width=\columnwidth]{figuras/02_efecto_cvg_operadores.png}
 \caption{Efecto mensual del CVG sobre el precio medio ponderado por operador. Los valores positivos indican un recargo y los negativos un descuento.}
 \label{fig:cvg}
 \end{figure}
@@ -437,7 +437,7 @@ JASEC & Sin CVG & $+$0,766 & [$+$0,515; $+$1,016] & 0,70 \\
 
 \begin{figure}[!htb]
 \centering
-\includegraphics[width=\columnwidth]{figuras/07a_regresion_con_cvg.png}
+\includegraphics[width=\columnwidth]{figuras/03_regresion_con_cvg.png}
 \caption{Regresi\'on lineal simple del precio medio ponderado mensual con CVG. Los puntos son los precios mensuales, las l\'ineas las rectas ajustadas y la l\'inea discontinua separa 2025 de 2026.}
 \label{fig:reg-con}
 \end{figure}
@@ -448,7 +448,7 @@ La pendiente es negativa en los cuatro operadores: el ICE y la CNFL pierden cerc
 
 \begin{figure}[!htb]
 \centering
-\includegraphics[width=\columnwidth]{figuras/07b_regresion_sin_cvg.png}
+\includegraphics[width=\columnwidth]{figuras/04_regresion_sin_cvg.png}
 \caption{Regresi\'on lineal simple del precio medio ponderado mensual sin CVG, con la misma escala vertical que la Figura~\ref{fig:reg-con}.}
 \label{fig:reg-sin}
 \end{figure}
@@ -509,7 +509,7 @@ JASEC & Sin CVG & $+$0,102  & $+$9,64*  & 0,92 & 1,79 \\
 
 \begin{figure}[!htb]
 \centering
-\includegraphics[width=\columnwidth]{figuras/10a_indicador_con_cvg.png}
+\includegraphics[width=\columnwidth]{figuras/05_indicador_con_cvg.png}
 \caption{Regresi\'on con indicador de 2026 del precio medio ponderado mensual con CVG. Las l\'ineas son los tramos ajustados antes y despu\'es del cambio de nivel; el marcador hueco corresponde a enero de 2026, excluido del ajuste.}
 \label{fig:ind-con}
 \end{figure}
@@ -520,7 +520,7 @@ Con CVG (Figura~\ref{fig:ind-con}), el cambio de nivel es negativo y significati
 
 \begin{figure}[!htb]
 \centering
-\includegraphics[width=\columnwidth]{figuras/10b_indicador_sin_cvg.png}
+\includegraphics[width=\columnwidth]{figuras/06_indicador_sin_cvg.png}
 \caption{Regresi\'on con indicador de 2026 del precio medio ponderado mensual sin CVG, con la misma escala vertical que la Figura~\ref{fig:ind-con}.}
 \label{fig:ind-sin}
 \end{figure}
@@ -572,7 +572,7 @@ Con el mismo procedimiento, el ARIMAX se reajust\'o con los 20 meses y se pronos
 
 \begin{figure}[!htb]
 \centering
-\includegraphics[width=\columnwidth]{figuras/13_pronostico_con_cvg.png}
+\includegraphics[width=\columnwidth]{figuras/07_pronostico_con_cvg.png}
 \caption{Precio medio ponderado mensual con CVG observado (enero de 2025 a agosto de 2026) y escenario ARIMAX de setiembre a diciembre de 2026, con su intervalo de predicci\'on del 95\,\%.}
 \label{fig:pronostico}
 \end{figure}
@@ -631,7 +631,7 @@ A partir de los datos abiertos de la ARESEP y de un flujo reproducible en Python
 
 \end{itemize}
 
-Como trabajo futuro se propone incorporar las fechas de las resoluciones tarifarias de la ARESEP como variables del modelo, extender la serie a m\'as a\~nos para aplicar modelos de pron\'ostico con estacionalidad, como SARIMAX o Prophet, separar el efecto precio del efecto composici\'on por tipo de tarifa y analizar las cooperativas con la misma metodolog\'ia, como un grupo independiente.
+Como trabajo futuro se propone incorporar las fechas de las resoluciones tarifarias de la ARESEP como variables del modelo, extender la serie a m\'as a\~nos para aplicar modelos de pron\'ostico con estacionalidad, como SARIMAX o Prophet, separar el efecto precio del efecto composici\'on por tipo de tarifa y ampliar el estudio a escala nacional, incorporando a todas las empresas distribuidoras, incluidas las cooperativas de electrificaci\'on rural, con un tratamiento que considere sus diferencias de escala y de modelo de gesti\'on.
 
 
 
