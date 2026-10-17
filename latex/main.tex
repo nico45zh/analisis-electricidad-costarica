@@ -286,6 +286,31 @@ Precio medio at\'ipico (RIC por tarifa) & 12 & Conservadas: diferencias de nivel
 \FloatBarrier
 
 Finalmente, se recalcul\'o el precio medio como ingreso entre ventas y se compar\'o con el publicado por la ARESEP: la diferencia m\'axima fue de 0,0052\,\crc/kWh y la promedio de 0,0024\,\crc/kWh, atribuibles al redondeo a dos decimales, por lo que se conservaron los valores oficiales. El conjunto limpio qued\'o con 720 registros y 15 variables, correspondientes a los cuatro operadores del estudio.
+\subsection{Implementaci\'on en Python}
+\label{sec:implementacion}
+
+Todo el procedimiento se implement\'o en un cuaderno de Google Colab. La Tabla~\ref{tab:metodos} resume, para cada etapa del estudio, el m\'etodo de Python que produce el resultado reportado, de modo que cada cifra del art\'iculo pueda ubicarse en el c\'odigo; el Ap\'endice~\ref{ap:codigo} reproduce los fragmentos correspondientes.
+
+\begin{table}[htbp]
+\caption{M\'etodos de Python utilizados en cada etapa}
+\label{tab:metodos}
+\centering
+\scriptsize
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{1.45cm} >{\raggedright\arraybackslash}p{2.9cm} >{\raggedright\arraybackslash}p{3.3cm}@{}}
+\hline
+\textbf{Etapa} & \textbf{M\'etodo (biblioteca)} & \textbf{Resultado} \\
+\hline
+Obtenci\'on & \texttt{requests.get}, \texttt{read\_csv} (Requests, Pandas) & Registros de la API de la ARESEP o del respaldo en GitHub \\
+Limpieza & \texttt{isin}, \texttt{quantile} (Pandas) & Filtro de los cuatro operadores y precios at\'ipicos por RIC \\
+EDA & \texttt{groupby} y \texttt{sum} (Pandas) & Precio medio ponderado mensual por operador \\
+Regresi\'on simple & \texttt{linregress} (SciPy) & Pendiente, $R^2$ y valor $p$ \\
+Regresi\'on con indicador & \texttt{OLS} con errores HAC, \texttt{durbin\_watson} (statsmodels) & Coeficientes con errores de Newey-West y estad\'istico DW \\
+Pron\'ostico & \texttt{SARIMAX}, \texttt{get\_forecast} (statsmodels) & ARIMAX elegido por AIC, pron\'ostico e intervalo del 95\,\% \\
+\hline
+\end{tabular}
+\end{table}
+
 % ---------------------------------
 \section{An\'alisis exploratorio de datos}
 \label{sec:eda}
@@ -638,6 +663,105 @@ Como trabajo futuro se propone incorporar las fechas de las resoluciones tarifar
 % ---------------------------------
 % REFERENCIAS
 % ---------------------------------
+% ---------------------------------
+\appendices
+\section{C\'odigo de los m\'etodos principales}
+\label{ap:codigo}
+
+Este anexo reproduce, de forma resumida, los fragmentos del cuaderno de Python que generan los resultados del art\'iculo, en el orden de la Tabla~\ref{tab:metodos}. Se omiten las instrucciones de impresi\'on y de graficaci\'on. El cuaderno completo y los datos est\'an disponibles en el repositorio p\'ublico del proyecto~\cite{repo}.
+
+\subsection{Filtro de operadores y precios at\'ipicos}
+
+{\scriptsize
+\begin{verbatim}
+OPERADORES = ["ICE", "CNFL", "ESPH", "JASEC"]
+df = df[df["empresa"].isin(OPERADORES)]
+
+def limites_iqr(serie, factor=1.5):
+    q1, q3 = serie.quantile([0.25, 0.75])
+    iqr = q3 - q1
+    return q1 - factor * iqr, q3 + factor * iqr
+
+limites = (df.groupby("tipoTarifa")
+             ["precioMedioConCVG"].apply(limites_iqr))
+\end{verbatim}
+}
+
+\subsection{Precio medio ponderado mensual}
+
+{\scriptsize
+\begin{verbatim}
+df_op = df[df["sistema"] == "Distribucion"]
+agr = (df_op.groupby(["empresa", "fecha"])
+       [["ingresoConCVG", "ingresoSinCVG", "ventas"]]
+       .sum().reset_index())
+agr["Con CVG"] = agr["ingresoConCVG"] / agr["ventas"]
+agr["Sin CVG"] = agr["ingresoSinCVG"] / agr["ventas"]
+agr["t"] = ((agr["fecha"].dt.year - 2025) * 12
+            + agr["fecha"].dt.month)
+\end{verbatim}
+}
+
+\subsection{Regresi\'on lineal simple}
+
+{\scriptsize
+\begin{verbatim}
+from scipy import stats
+
+res = stats.linregress(t, y)  # t = 1..20
+pendiente, r2 = res.slope, res.rvalue ** 2
+valor_p = res.pvalue
+\end{verbatim}
+}
+
+\subsection{Regresi\'on con indicador de 2026}
+
+{\scriptsize
+\begin{verbatim}
+import statsmodels.api as sm
+
+usar = t != 13                 # se excluye ene-2026
+D = (t >= 14).astype(float)    # desde feb-2026
+X = np.column_stack([np.ones(len(t)), t, D])
+res = sm.OLS(y[usar], X[usar]).fit(
+    cov_type="HAC", cov_kwds={"maxlags": 2},
+    use_t=True)
+b0, b1, b2 = res.params
+dw = sm.stats.durbin_watson(res.resid)
+\end{verbatim}
+}
+
+\subsection{ARIMAX y escenario a diciembre de 2026}
+
+{\scriptsize
+\begin{verbatim}
+def exog(t, tendencia):
+    cols = [np.ones(len(t))]
+    if tendencia == "ct":
+        cols.append(t)
+    cols += [(t >= 14).astype(float),   # escalon
+             (t == 13).astype(float)]   # pulso
+    return np.column_stack(cols)
+
+candidatos = []
+for p in (0, 1):
+    for q in (0, 1):
+        for tend in ("c", "ct"):
+            aj = sm.tsa.SARIMAX(
+                y, exog=exog(t, tend),
+                order=(p, 0, q), trend="n").fit(disp=False)
+            candidatos.append((aj.aic, tend, aj))
+aic, tend, mejor = min(candidatos, key=lambda c: c[0])
+
+t_esc = np.arange(21, 25, dtype=float)  # set-dic
+pred = mejor.get_forecast(4, exog=exog(t_esc, tend))
+media = pred.predicted_mean
+ic95 = pred.conf_int(alpha=0.05)
+\end{verbatim}
+}
+
+En el cuaderno, cada candidato del ARIMAX se ajusta adem\'as con cuatro optimizadores y se descartan los que no convergen o tienen ra\'ices en la frontera ($|\phi|$ o $|\theta| \geq 0{,}99$).
+
 \begin{thebibliography}{00}
 
 \bibitem{r1} Autoridad Reguladora de los Servicios P\'ublicos, ``Electricidad,'' San Jos\'e, Costa Rica. [En l\'inea]. Disponible: \url{https://aresep.go.cr/electricidad/}
@@ -675,6 +799,8 @@ Como trabajo futuro se propone incorporar las fechas de las resoluciones tarifar
 \bibitem{r17} A. Nagpal and G. Gabrani, ``Python for Data Analytics, Scientific and Technical Applications,'' in \emph{2019 Amity Int. Conf. Artificial Intelligence (AICAI)}, Dubai, United Arab Emirates, 2019, pp. 140--145, doi: 10.1109/AICAI.2019.8701341.
 
 \bibitem{r18} J. G. Rodriguez Rivas y S. Rodr\'iguez Castillo, ``Uso de Python para el an\'alisis de datos aplicado en la investigaci\'on,'' \emph{INCAING}, vol. 5, n.\textsuperscript{o} 34, pp. 33--40, nov. 2022. [En l\'inea]. Disponible: \url{https://ojsincaing.com.mx/index.php/ediciones/article/view/188}
+
+\bibitem{repo} N. Z\'arate Hern\'andez, ``analisis-electricidad-costarica'' [repositorio de c\'odigo y datos], GitHub. [En l\'inea]. Disponible: \url{https://github.com/nico45zh/analisis-electricidad-costarica}
 
 \end{thebibliography}
 
