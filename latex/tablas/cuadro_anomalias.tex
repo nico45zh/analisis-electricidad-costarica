@@ -1,0 +1,19 @@
+\begin{table}[htbp]
+\caption{Anomal\'ias detectadas en el conjunto combinado (1398 registros)}
+\label{tab:anomalias}
+\centering
+\scriptsize
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{@{}p{3.0cm} p{1.0cm} p{3.5cm}@{}}
+\hline
+\textbf{Anomal\'ia} & \textbf{Filas} & \textbf{Tratamiento} \\
+\hline
+Valores nulos & 0 & Sin acci\'on \\
+Duplicados (fecha, empresa, tipoTarifa) & 0 & Sin acci\'on \\
+Ventas $\leq$ 0 & 4 & Eliminadas \\
+Ingresos negativos & 2 & Conservadas, documentadas \\
+Precio medio at\'ipico (RIC por tipoTarifa) & 94 & Conservadas, documentadas \\
+\hline
+\end{tabular}
+\end{table}
+\FloatBarrier

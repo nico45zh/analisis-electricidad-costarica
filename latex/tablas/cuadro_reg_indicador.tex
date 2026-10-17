@@ -1,0 +1,23 @@
+\begin{table}[htbp]
+\caption{Regresi\'on con indicador de 2026: coeficientes por operador}
+\label{tab:reg-indicador}
+\centering
+\scriptsize
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{@{}p{0.95cm} p{1.3cm} p{1.5cm} p{1.5cm} p{0.7cm}@{}}
+\hline
+\textbf{Oper.} & \textbf{Precio} & \textbf{$\hat\beta_1$ (\crc/kWh/mes)} & \textbf{$\hat\beta_2$ (\crc/kWh)} & \textbf{$R^2$} \\
+\hline
+ICE & Con CVG & $-$0,228* & $-$9,83* & 0,96 \\
+ICE & Sin CVG & $-$0,114 & $+$10,84* & 0,88 \\
+CNFL & Con CVG & $-$0,148* & $-$10,15* & 0,96 \\
+CNFL & Sin CVG & $-$0,065 & $+$9,50* & 0,88 \\
+ESPH & Con CVG & $-$0,311 & $-$2,84 & 0,68 \\
+ESPH & Sin CVG & $-$0,229 & $+$10,11* & 0,63 \\
+JASEC & Con CVG & $+$0,130 & $-$4,77* & 0,41 \\
+JASEC & Sin CVG & $+$0,251 & $+$6,99* & 0,79 \\
+\hline
+\multicolumn{5}{@{}l@{}}{\footnotesize * Significativo al 5\,\% (Newey-West).} \\
+\end{tabular}
+\end{table}
+\FloatBarrier
