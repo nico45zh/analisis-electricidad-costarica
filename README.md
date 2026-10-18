@@ -81,6 +81,7 @@ El estudio se limita a los cuatro operadores públicos de distribución; las coo
 
 Escuela de Informática, Universidad Nacional de Costa Rica (UNA), Heredia.
 
+Estudiantes:
 - Ana Lucía Salazar Chacón
 - Nicolas Zárate Hernández
 - Gerson Jafet Madrigal Cubillo
