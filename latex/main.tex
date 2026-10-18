@@ -321,7 +321,7 @@ El an\'alisis exploratorio se realiz\'o sobre el conjunto limpio descrito en la 
 % ---------------------------------
 \subsection{Estad\'isticas descriptivas del precio medio}
 
-La Tabla~\ref{tab:desc-operador} resume la media, la mediana, la desviaci\'on est\'andar, el m\'inimo y el m\'aximo de \texttt{precioMedioConCVG} por operador, calculados sobre los registros mensuales de cada tipo de tarifa. Por tratarse de promedios simples entre tarifas, estas cifras describen la distribuci\'on de los precios y no el precio medio global de cada operador, que se analiza en la secci\'on siguiente. El ICE presenta el precio medio m\'as alto (84,42\,\crc/kWh) y JASEC el m\'as bajo (66,52\,\crc/kWh). El ICE y la CNFL muestran tambi\'en la mayor dispersi\'on entre tarifas (22,74 y 21,97\,\crc/kWh), casi el doble que la ESPH y JASEC, lo que refleja una estructura tarifaria m\'as diversa.
+Como se observa en la Tabla~\ref{tab:desc-operador}, que resume la media, la mediana, la desviaci\'on est\'andar, el m\'inimo y el m\'aximo de \texttt{precioMedioConCVG} por operador, el ICE presenta el precio medio m\'as alto (84,42\,\crc/kWh) y JASEC el m\'as bajo (66,52\,\crc/kWh). El ICE y la CNFL muestran tambi\'en la mayor dispersi\'on entre tarifas (22,74 y 21,97\,\crc/kWh), casi el doble que la ESPH y JASEC, lo que refleja una estructura tarifaria m\'as diversa. Estas cifras se calculan sobre los registros mensuales de cada tipo de tarifa; por tratarse de promedios simples entre tarifas, describen la distribuci\'on de los precios y no el precio medio global de cada operador, que se analiza en la secci\'on siguiente. Por tipo de tarifa, para el conjunto de los operadores, las categor\'ias Industrial y Comercios y servicios presentan los precios medios m\'as altos (95,81 y 95,48\,\crc/kWh, respectivamente), mientras que Alumbrado P\'ublico registra el m\'as bajo (48,84\,\crc/kWh).
 
 \begin{table}[htbp]
 \caption{Precio medio con CVG por operador (\crc/kWh)}
@@ -342,14 +342,14 @@ JASEC & 66,52 & 62,68 & 12,79 & 45,37 & 89,36 \\
 \end{table}
 \FloatBarrier
 
-Por tipo de tarifa, para el conjunto de los operadores, las categor\'ias Industrial y Comercios y servicios presentan los precios medios m\'as altos (95,81 y 95,48\,\crc/kWh, respectivamente), mientras que Alumbrado P\'ublico registra el m\'as bajo (48,84\,\crc/kWh).
-
 
 
 % ---------------------------------
 \subsection{Precio medio ponderado mensual}
 
-El precio medio ponderado de cada mes se calcula como el cociente entre la suma de los ingresos con CVG y la suma de las ventas de todas las tarifas de ese mes, es decir, aplicando la Ecuaci\'on~\eqref{eq:precio_medio} al agregado y no promediando tarifa por tarifa, para que una categor\'ia de poco consumo no pese lo mismo que la residencial. La Figura~\ref{fig:precio-mensual} muestra la serie de enero de 2025 a agosto de 2026.
+El precio medio ponderado de cada mes se calcula como el cociente entre la suma de los ingresos con CVG y la suma de las ventas de todas las tarifas de ese mes, es decir, aplicando la Ecuaci\'on~\eqref{eq:precio_medio} al agregado y no promediando tarifa por tarifa, para que una categor\'ia de poco consumo no pese lo mismo que la residencial.
+
+Como se observa en la Figura~\ref{fig:precio-mensual}, que muestra la serie de enero de 2025 a agosto de 2026, el orden de los operadores se mantiene en los 20 meses del periodo: el ICE presenta siempre el precio ponderado m\'as alto, seguido de la CNFL, la ESPH y JASEC. Durante 2025 las cuatro series son estables, con variaciones mensuales cercanas a 1\,\crc/kWh. Entre diciembre de 2025 y febrero de 2026 se produce un descenso escalonado, coherente con el comportamiento de un precio fijado por resoluci\'on administrativa descrito en la Secci\'on~\ref{sec:aresep}: el ICE pasa de 89,77 a 77,09\,\crc/kWh ($-14{,}1$\,\%) y la CNFL de 88,06 a 75,71\,\crc/kWh ($-14{,}0$\,\%), ambos con la mayor ca\'ida en enero de 2026. La ESPH desciende un 9,9\,\%, principalmente en febrero, y JASEC solo un 5,2\,\%, de forma gradual. A partir de marzo de 2026 las series se estabilizan en un nuevo nivel, cercano a 77\,\crc/kWh para el ICE, 75\,\crc/kWh para la CNFL, 72\,\crc/kWh para la ESPH y 66\,\crc/kWh para JASEC. JASEC es adem\'as el operador m\'as estable del periodo, con una desviaci\'on est\'andar de 2,80\,\crc/kWh, frente a 6,27\,\crc/kWh del ICE.
 
 \begin{figure}[!htb]
 \centering
@@ -360,8 +360,6 @@ El precio medio ponderado de cada mes se calcula como el cociente entre la suma 
 \end{figure}
 \FloatBarrier
 
-El orden de los operadores se mantiene en los 20 meses del periodo: el ICE presenta siempre el precio ponderado m\'as alto, seguido de la CNFL, la ESPH y JASEC. Durante 2025 las cuatro series son estables, con variaciones mensuales cercanas a 1\,\crc/kWh. Entre diciembre de 2025 y febrero de 2026 se produce un descenso escalonado, coherente con el comportamiento de un precio fijado por resoluci\'on administrativa descrito en la Secci\'on~\ref{sec:aresep}: el ICE pasa de 89,77 a 77,09\,\crc/kWh ($-14{,}1$\,\%) y la CNFL de 88,06 a 75,71\,\crc/kWh ($-14{,}0$\,\%), ambos con la mayor ca\'ida en enero de 2026. La ESPH desciende un 9,9\,\%, principalmente en febrero, y JASEC solo un 5,2\,\%, de forma gradual. A partir de marzo de 2026 las series se estabilizan en un nuevo nivel, cercano a 77\,\crc/kWh para el ICE, 75\,\crc/kWh para la CNFL, 72\,\crc/kWh para la ESPH y 66\,\crc/kWh para JASEC. JASEC es adem\'as el operador m\'as estable del periodo, con una desviaci\'on est\'andar de 2,80\,\crc/kWh, frente a 6,27\,\crc/kWh del ICE.
-
 
 
 
@@ -369,7 +367,9 @@ El orden de los operadores se mantiene en los 20 meses del periodo: el ICE prese
 % ---------------------------------
 \subsection{Comparaci\'on entre periodos equivalentes}
 
-La Tabla~\ref{tab:trimestral} compara el I y el II trimestre de 2025 con los mismos trimestres de 2026 para cada operador, mediante el precio medio ponderado y la variaci\'on porcentual del precio, del ingreso y de las ventas. Julio y agosto de 2026 no participan de esta comparaci\'on, conforme a la delimitaci\'on del estudio (Secci\'on~\ref{sec:delimitacion}).
+Como se observa en la Tabla~\ref{tab:trimestral}, que compara el I y el II trimestre de 2025 con los mismos trimestres de 2026 para cada operador mediante el precio medio ponderado y la variaci\'on porcentual del precio, del ingreso y de las ventas, en los cuatro operadores el precio ponderado de 2026 es menor que el de 2025, aunque con magnitudes distintas. El ICE y la CNFL registran las mayores ca\'idas, entre el 12,6\,\% y el 13,9\,\%, y la ESPH presenta descensos de entre el 7,3\,\% y el 8,3\,\%, muy similares en ambos trimestres. Como las ventas no disminuyeron en ning\'un caso, la reducci\'on del ingreso en estos tres operadores responde al efecto precio y no a una contracci\'on del consumo; en la ESPH, cuyas ventas se mantuvieron pr\'acticamente constantes, el ingreso cae casi en la misma proporci\'on que el precio, mientras que en el ICE y la CNFL el crecimiento de las ventas, de entre el 3,3\,\% y el 7,4\,\%, aten\'ua parcialmente la ca\'ida del ingreso. Julio y agosto de 2026 no participan de esta comparaci\'on, conforme a la delimitaci\'on del estudio (Secci\'on~\ref{sec:delimitacion}).
+
+En la misma tabla, JASEC requiere una lectura particular. La ca\'ida casi nula de su precio en el I trimestre ($-$0,43\,\%) y el aumento del 6,00\,\% en su ingreso se explican principalmente por un precio at\'ipicamente bajo en enero de 2025 (62,58\,\crc/kWh, frente a cerca de 70\,\crc/kWh en el resto del a\~no), que reduce la base de comparaci\'on. Si se comparan \'unicamente febrero y marzo, el precio de JASEC desciende un 5,15\,\% y su ingreso crece apenas un 1,30\,\%. En el II trimestre, sin ese efecto, su precio cae un 8,14\,\%, una magnitud cercana a la de la ESPH, y su ingreso disminuye un 1,13\,\% pese al aumento de las ventas.
 
 \begin{table}[htbp]
 \caption{Comparaci\'on trimestral por operador, 2025 frente a 2026}
@@ -395,14 +395,12 @@ JASEC & II & 70,44 & 64,70 & $-$8,14  & $-$1,13  & $+$7,63 \\
 \end{table}
 \FloatBarrier
 
-En los cuatro operadores el precio ponderado del I y el II trimestre de 2026 es menor que el de 2025, aunque con magnitudes distintas. El ICE y la CNFL registran las mayores ca\'idas, entre el 12,6\,\% y el 13,9\,\%, y la ESPH presenta descensos de entre el 7,3\,\% y el 8,3\,\%, muy similares en ambos trimestres. Como las ventas no disminuyeron en ning\'un caso, la reducci\'on del ingreso en estos tres operadores responde al efecto precio y no a una contracci\'on del consumo; en la ESPH, cuyas ventas se mantuvieron pr\'acticamente constantes, el ingreso cae casi en la misma proporci\'on que el precio, mientras que en el ICE y la CNFL el crecimiento de las ventas, de entre el 3,3\,\% y el 7,4\,\%, aten\'ua parcialmente la ca\'ida del ingreso.
-
-JASEC requiere una lectura particular. La ca\'ida casi nula de su precio en el I trimestre ($-$0,43\,\%) y el aumento del 6,00\,\% en su ingreso se explican principalmente por un precio at\'ipicamente bajo en enero de 2025 (62,58\,\crc/kWh, frente a cerca de 70\,\crc/kWh en el resto del a\~no), que reduce la base de comparaci\'on. Si se comparan \'unicamente febrero y marzo, el precio de JASEC desciende un 5,15\,\% y su ingreso crece apenas un 1,30\,\%. En el II trimestre, sin ese efecto, su precio cae un 8,14\,\%, una magnitud cercana a la de la ESPH, y su ingreso disminuye un 1,13\,\% pese al aumento de las ventas.
-
 % ---------------------------------
 \subsection{Efecto del Costo Variable de Generaci\'on (CVG)}
 
-El efecto del CVG se calcul\'o, para cada operador y mes, como la diferencia entre el precio medio ponderado con CVG y sin CVG, ambos obtenidos con la Ecuaci\'on~\eqref{eq:precio_medio} sobre el agregado mensual. La Figura~\ref{fig:cvg} muestra el resultado.
+El efecto del CVG se calcul\'o, para cada operador y mes, como la diferencia entre el precio medio ponderado con CVG y sin CVG, ambos obtenidos con la Ecuaci\'on~\eqref{eq:precio_medio} sobre el agregado mensual.
+
+Como se observa en la Figura~\ref{fig:cvg}, durante 2025 el CVG funcion\'o como un recargo estable: a\~nadi\'o en promedio entre 13,07\,\crc/kWh (ESPH) y 19,76\,\crc/kWh (ICE) al precio medio ponderado, con un m\'aximo mensual de 20,26\,\crc/kWh en el ICE en abril. En enero de 2026 el efecto todav\'ia fue positivo, aunque menor (entre 7,34 y 11,71\,\crc/kWh), y a partir de febrero de 2026 cambi\'o de signo en los cuatro operadores: entre febrero y agosto el CVG rest\'o en promedio entre 0,50\,\crc/kWh (JASEC) y 3,54\,\crc/kWh (ICE). Este cambio coincide con la ca\'ida del precio ponderado descrita en la secci\'on anterior y explica buena parte de ella. Es coherente adem\'as con la dependencia hidrol\'ogica del costo de generaci\'on se\~nalada en la Secci\'on~\ref{sec:electricidadCR}: el encarecimiento t\'ermico asociado a El Ni\~no de 2023--2024 se fue diluyendo, y hacia 2026 el ajuste extraordinario del CVG pas\'o de ser un recargo a un descuento.
 
 \begin{figure}[!htb]
 \centering
@@ -411,8 +409,6 @@ El efecto del CVG se calcul\'o, para cada operador y mes, como la diferencia ent
 \label{fig:cvg}
 \end{figure}
 \FloatBarrier
-
-Durante 2025 el CVG funcion\'o como un recargo estable: a\~nadi\'o en promedio entre 13,07\,\crc/kWh (ESPH) y 19,76\,\crc/kWh (ICE) al precio medio ponderado, con un m\'aximo mensual de 20,26\,\crc/kWh en el ICE en abril. En enero de 2026 el efecto todav\'ia fue positivo, aunque menor (entre 7,34 y 11,71\,\crc/kWh), y a partir de febrero de 2026 cambi\'o de signo en los cuatro operadores: entre febrero y agosto el CVG rest\'o en promedio entre 0,50\,\crc/kWh (JASEC) y 3,54\,\crc/kWh (ICE). Este cambio coincide con la ca\'ida del precio ponderado descrita en la secci\'on anterior y explica buena parte de ella. Es coherente adem\'as con la dependencia hidrol\'ogica del costo de generaci\'on se\~nalada en la Secci\'on~\ref{sec:electricidadCR}: el encarecimiento t\'ermico asociado a El Ni\~no de 2023--2024 se fue diluyendo, y hacia 2026 el ajuste extraordinario del CVG pas\'o de ser un recargo a un descuento.
 
 
 
@@ -434,7 +430,9 @@ El primer modelo relaciona el precio con el tiempo mediante una sola recta por o
 \text{precio}_t = \beta_0 + \beta_1\, t + \varepsilon_t,
 \label{eq:reg_simple}
 \end{equation}
-donde $t = 1, \dots, 20$ es el \'indice del mes (enero de 2025 a agosto de 2026) y $\beta_1$ la variaci\'on mensual promedio del precio, en \crc/kWh por mes. La Tabla~\ref{tab:reg-simple} resume los coeficientes de ambas variantes del precio.
+donde $t = 1, \dots, 20$ es el \'indice del mes (enero de 2025 a agosto de 2026) y $\beta_1$ la variaci\'on mensual promedio del precio, en \crc/kWh por mes.
+
+\textit{Precio con CVG.} Como se observa en la Tabla~\ref{tab:reg-simple} y en la Figura~\ref{fig:reg-con}, que muestra las rectas ajustadas al precio con CVG, la pendiente es negativa en los cuatro operadores: el ICE y la CNFL pierden cerca de 0,9\,\crc/kWh por mes, la ESPH 0,5\,\crc/kWh y JASEC 0,2\,\crc/kWh, este \'ultimo con un intervalo cercano al cero y un ajuste d\'ebil ($R^2 = 0{,}23$). Sin embargo, los puntos no descienden de forma gradual: el precio se mantiene en un nivel alto durante 2025, cae a inicios de 2026, con enero como mes de transici\'on, y desde febrero se estabiliza en un nivel menor. La recta reparte esa ca\'ida a lo largo de los 20 meses.
 
 \begin{table}[htbp]
 \caption{Regresi\'on lineal simple: pendiente mensual por operador}
@@ -458,8 +456,6 @@ JASEC & Sin CVG & $+$0,766 & [$+$0,515; $+$1,016] & 0,70 \\
 \end{tabular*}
 \end{table}
 
-\textit{Precio con CVG.} La Figura~\ref{fig:reg-con} muestra las rectas ajustadas al precio con CVG.
-
 \begin{figure}[!htb]
 \centering
 \includegraphics[width=\columnwidth]{figuras/03_regresion_con_cvg.png}
@@ -467,9 +463,7 @@ JASEC & Sin CVG & $+$0,766 & [$+$0,515; $+$1,016] & 0,70 \\
 \label{fig:reg-con}
 \end{figure}
 
-La pendiente es negativa en los cuatro operadores: el ICE y la CNFL pierden cerca de 0,9\,\crc/kWh por mes, la ESPH 0,5\,\crc/kWh y JASEC 0,2\,\crc/kWh, este \'ultimo con un intervalo cercano al cero y un ajuste d\'ebil ($R^2 = 0{,}23$). Sin embargo, los puntos no descienden de forma gradual: el precio se mantiene en un nivel alto durante 2025, cae a inicios de 2026, con enero como mes de transici\'on, y desde febrero se estabiliza en un nivel menor. La recta reparte esa ca\'ida a lo largo de los 20 meses.
-
-\textit{Precio sin CVG.} La Figura~\ref{fig:reg-sin} muestra el mismo ajuste para el precio sin CVG.
+\textit{Precio sin CVG.} Con el precio sin CVG (Tabla~\ref{tab:reg-simple} y Figura~\ref{fig:reg-sin}), el signo se invierte y la pendiente es positiva en los cuatro operadores, entre 0,53\,\crc/kWh por mes (ESPH) y 0,77\,\crc/kWh por mes (JASEC). El mejor ajuste es el de JASEC ($R^2 = 0{,}70$) y el m\'as d\'ebil el de la ESPH ($R^2 = 0{,}38$). Igual que con CVG, la serie no crece de forma continua: es estable en 2025, sube a inicios de 2026 y vuelve a estabilizarse desde febrero.
 
 \begin{figure}[!htb]
 \centering
@@ -478,8 +472,6 @@ La pendiente es negativa en los cuatro operadores: el ICE y la CNFL pierden cerc
 \label{fig:reg-sin}
 \end{figure}
 \FloatBarrier
-
-En este caso el signo se invierte y la pendiente es positiva en los cuatro operadores, entre 0,53\,\crc/kWh por mes (ESPH) y 0,77\,\crc/kWh por mes (JASEC). El mejor ajuste es el de JASEC ($R^2 = 0{,}70$) y el m\'as d\'ebil el de la ESPH ($R^2 = 0{,}38$). Igual que con CVG, la serie no crece de forma continua: es estable en 2025, sube a inicios de 2026 y vuelve a estabilizarse desde febrero.
 
 \textit{Contraste entre ambas variantes.} Las pendientes de signo opuesto responden al mismo hecho: en 2026 la tarifa base aumenta, mientras el CVG pasa de recargo a rebaja, de modo que el precio que paga el usuario baja aunque el precio sin CVG suba. En ambas variantes la recta resume un escal\'on y no una tendencia, lo que confirma el estad\'istico de Durbin-Watson, que va de 0,45 a 1,38, muy por debajo de 2, y revela autocorrelaci\'on fuerte en los residuos. Por ello los valores $p$ de este modelo no se interpretan, lo que motiva el modelo con indicador de la subsecci\'on siguiente.
 
@@ -505,7 +497,11 @@ Para separar el cambio de nivel de la tendencia, el segundo modelo a\~nade una v
 \text{precio}_t = \beta_0 + \beta_1\, t + \beta_2\, D_{2026,t} + \varepsilon_t,
 \label{eq:reg_indicador}
 \end{equation}
-donde $D_{2026,t}$ vale 1 desde febrero de 2026 ($t \geq 14$), primer mes en que el CVG resta al precio, y 0 antes. Enero de 2026 ($t = 13$) se excluy\'o del ajuste por ser un mes de transici\'on, en el que el CVG se redujo sin llegar a\'un a ser negativo, por lo que cada serie cuenta con $n = 19$ observaciones. As\'i, $\beta_2$ mide el cambio de nivel del precio (\crc/kWh) y $\beta_1$ la tendencia mensual dentro de cada periodo. Los errores est\'andar se calcularon con la correcci\'on de Newey-West (rezago 2) y los valores $p$ con la distribuci\'on $t$ de $n-3$ grados de libertad. La Tabla~\ref{tab:reg-indicador} resume los coeficientes de ambas variantes del precio.
+donde $D_{2026,t}$ vale 1 desde febrero de 2026 ($t \geq 14$), primer mes en que el CVG resta al precio, y 0 antes. Enero de 2026 ($t = 13$) se excluy\'o del ajuste por ser un mes de transici\'on, en el que el CVG se redujo sin llegar a\'un a ser negativo, por lo que cada serie cuenta con $n = 19$ observaciones. As\'i, $\beta_2$ mide el cambio de nivel del precio (\crc/kWh) y $\beta_1$ la tendencia mensual dentro de cada periodo. Los errores est\'andar se calcularon con la correcci\'on de Newey-West (rezago 2) y los valores $p$ con la distribuci\'on $t$ de $n-3$ grados de libertad.
+
+\subsubsection{Precio con CVG}
+
+Como se observa en la Tabla~\ref{tab:reg-indicador} y en la Figura~\ref{fig:ind-con}, con CVG el cambio de nivel es negativo y significativo en los cuatro operadores: el precio cae 11,3\,\crc/kWh en el ICE y 11,8\,\crc/kWh en la CNFL, y bastante menos en JASEC (6,0\,\crc/kWh) y la ESPH (4,6\,\crc/kWh). Fuera del escal\'on la tendencia es casi nula: solo la pendiente del ICE ($-$0,14\,\crc/kWh por mes) resulta significativa, y en el l\'imite del umbral. El ajuste es muy alto en el ICE y la CNFL ($R^2 = 0{,}99$), alto en la ESPH (0,79) y moderado en JASEC (0,51), cuya serie incluye el valor at\'ipicamente bajo de enero de 2025.
 
 \begin{table}[htbp]
 \caption{Regresi\'on con indicador de 2026: coeficientes por operador}
@@ -530,8 +526,6 @@ JASEC & Sin CVG & $+$0,102  & $+$9,64*  & 0,92 & 1,79 \\
 \end{tabular*}
 \end{table}
 
-\subsubsection{Precio con CVG}
-
 \begin{figure}[!htb]
 \centering
 \includegraphics[width=\columnwidth]{figuras/05_indicador_con_cvg.png}
@@ -539,9 +533,9 @@ JASEC & Sin CVG & $+$0,102  & $+$9,64*  & 0,92 & 1,79 \\
 \label{fig:ind-con}
 \end{figure}
 
-Con CVG (Figura~\ref{fig:ind-con}), el cambio de nivel es negativo y significativo en los cuatro operadores: el precio cae 11,3\,\crc/kWh en el ICE y 11,8\,\crc/kWh en la CNFL, y bastante menos en JASEC (6,0\,\crc/kWh) y la ESPH (4,6\,\crc/kWh). Fuera del escal\'on la tendencia es casi nula: solo la pendiente del ICE ($-$0,14\,\crc/kWh por mes) resulta significativa, y en el l\'imite del umbral. El ajuste es muy alto en el ICE y la CNFL ($R^2 = 0{,}99$), alto en la ESPH (0,79) y moderado en JASEC (0,51), cuya serie incluye el valor at\'ipicamente bajo de enero de 2025.
-
 \subsubsection{Precio sin CVG}
+
+Sin CVG (Tabla~\ref{tab:reg-indicador} y Figura~\ref{fig:ind-sin}) el escal\'on cambia de signo: el precio base sube de forma significativa en los cuatro operadores, entre 9,6\,\crc/kWh (JASEC) y 12,8\,\crc/kWh (ICE), con 11,2\,\crc/kWh en la CNFL y 12,6\,\crc/kWh en la ESPH. Ninguna pendiente es significativa y todas son menores que 0,4\,\crc/kWh por mes en valor absoluto, de modo que, descontado el escal\'on, el precio base se mantiene estable dentro de cada periodo. El $R^2$ va de 0,77 (ESPH) a 0,96 (CNFL).
 
 \begin{figure}[!htb]
 \centering
@@ -549,8 +543,7 @@ Con CVG (Figura~\ref{fig:ind-con}), el cambio de nivel es negativo y significati
 \caption{Regresi\'on con indicador de 2026 del precio medio ponderado mensual sin CVG, con la misma escala vertical que la Figura~\ref{fig:ind-con}.}
 \label{fig:ind-sin}
 \end{figure}
-
-Sin CVG (Figura~\ref{fig:ind-sin}) el escal\'on cambia de signo: el precio base sube de forma significativa en los cuatro operadores, entre 9,6\,\crc/kWh (JASEC) y 12,8\,\crc/kWh (ICE), con 11,2\,\crc/kWh en la CNFL y 12,6\,\crc/kWh en la ESPH. Ninguna pendiente es significativa y todas son menores que 0,4\,\crc/kWh por mes en valor absoluto, de modo que, descontado el escal\'on, el precio base se mantiene estable dentro de cada periodo. El $R^2$ va de 0,77 (ESPH) a 0,96 (CNFL).
+\FloatBarrier
 
 \subsubsection{Contraste entre ambas variantes}
 
@@ -568,7 +561,9 @@ La regresi\'on simple sugiere tendencias opuestas, negativa con CVG y positiva s
 \subsection{Evaluaci\'on predictiva y escenario a diciembre de 2026}
 \label{sec:pronostico}
 
-Para evaluar la capacidad predictiva de los modelos, cada serie se dividi\'o en un periodo de entrenamiento, de enero de 2025 a abril de 2026 ($t = 1, \dots, 16$), y uno de prueba, de mayo a agosto de 2026 ($t = 17, \dots, 20$). Desde abril de 2026 se pronosticaron los cuatro meses siguientes con tres modelos: un pron\'ostico ingenuo, que repite el \'ultimo valor observado; la regresi\'on con indicador de la Ecuaci\'on~\eqref{eq:reg_indicador}; y un modelo ARIMAX$(p,0,q)$, con $p, q \in \{0,1\}$, que incorpora como regresores el escal\'on $D_{2026,t}$ y un pulso para enero de 2026, y cuyo orden se eligi\'o por el criterio de informaci\'on de Akaike (AIC). No se incluy\'o un componente estacional, ya que un modelo SARIMA con periodo de 12 meses requiere varios ciclos anuales completos~\cite{r13}. El error se midi\'o con el MAE, el RMSE y el MAPE (Tabla~\ref{tab:pronostico}).
+Para evaluar la capacidad predictiva de los modelos, cada serie se dividi\'o en un periodo de entrenamiento, de enero de 2025 a abril de 2026 ($t = 1, \dots, 16$), y uno de prueba, de mayo a agosto de 2026 ($t = 17, \dots, 20$). Desde abril de 2026 se pronosticaron los cuatro meses siguientes con tres modelos: un pron\'ostico ingenuo, que repite el \'ultimo valor observado; la regresi\'on con indicador de la Ecuaci\'on~\eqref{eq:reg_indicador}; y un modelo ARIMAX$(p,0,q)$, con $p, q \in \{0,1\}$, que incorpora como regresores el escal\'on $D_{2026,t}$ y un pulso para enero de 2026, y cuyo orden se eligi\'o por el criterio de informaci\'on de Akaike (AIC). No se incluy\'o un componente estacional, ya que un modelo SARIMA con periodo de 12 meses requiere varios ciclos anuales completos~\cite{r13}. El error se midi\'o con el MAE, el RMSE y el MAPE.
+
+Como se observa en la Tabla~\ref{tab:pronostico}, el pron\'ostico ingenuo obtuvo el menor error promedio en ambas variantes del precio: con CVG, su MAE fue de 0,67\,\crc/kWh, frente a 0,93 del ARIMAX y 1,04 de la regresi\'on con indicador. En el ICE, la CNFL y la ESPH, el AIC seleccion\'o un ARIMAX sin componentes autorregresivos ni de media m\'ovil, equivalente a la regresi\'on con indicador; solo en JASEC eligi\'o un componente autorregresivo de orden 1, lo que explica la peque\~na ventaja promedio del ARIMAX. Los tres modelos se equivocan en promedio menos de un 2\,\%, y aunque en el ICE la regresi\'on y el ARIMAX superan al ingenuo, en promedio ninguno lo hace: con precios casi constantes desde febrero de 2026, el mejor pron\'ostico de corto plazo es el \'ultimo valor observado. El resultado es coherente con un precio que cambia por resoluciones administrativas y no por la din\'amica propia de la serie.
 
 \begin{table}[htbp]
 \caption{Error del pron\'ostico de mayo a agosto de 2026, promedio de los cuatro operadores}
@@ -590,8 +585,6 @@ ARIMAX             & Con CVG & 0,93 & 1,10 & 1,36 \\
 \multicolumn{5}{@{}l@{}}{\footnotesize MAE y RMSE en \crc/kWh.} \\
 \end{tabular*}
 \end{table}
-
-El pron\'ostico ingenuo obtuvo el menor error promedio en ambas variantes del precio: con CVG, su MAE fue de 0,67\,\crc/kWh, frente a 0,93 del ARIMAX y 1,04 de la regresi\'on con indicador. En el ICE, la CNFL y la ESPH, el AIC seleccion\'o un ARIMAX sin componentes autorregresivos ni de media m\'ovil, equivalente a la regresi\'on con indicador; solo en JASEC eligi\'o un componente autorregresivo de orden 1, lo que explica la peque\~na ventaja promedio del ARIMAX. Los tres modelos se equivocan en promedio menos de un 2\,\%, y aunque en el ICE la regresi\'on y el ARIMAX superan al ingenuo, en promedio ninguno lo hace: con precios casi constantes desde febrero de 2026, el mejor pron\'ostico de corto plazo es el \'ultimo valor observado. El resultado es coherente con un precio que cambia por resoluciones administrativas y no por la din\'amica propia de la serie.
 
 Con el mismo procedimiento, el ARIMAX se reajust\'o con los 20 meses y se pronostic\'o el precio de setiembre a diciembre de 2026 (Figura~\ref{fig:pronostico} y Tabla~\ref{tab:escenario}). Se trata de un escenario sin nuevas resoluciones tarifarias, que supone que el nivel vigente desde febrero de 2026 se mantiene. En los cuatro operadores, el precio con CVG de diciembre queda a menos de 1\,\crc/kWh de su valor de agosto. Los intervalos de predicci\'on del 95\,\% son estrechos en el ICE y la CNFL (entre $\pm$0,8 y $\pm$1,3\,\crc/kWh) y m\'as amplios en la ESPH y JASEC (cerca de $\pm$4\,\crc/kWh), cuyas series son m\'as irregulares. Estos intervalos subestiman la incertidumbre real, ya que no incluyen el error de estimaci\'on de los coeficientes ni posibles ajustes tarifarios, como el del CVG para 2027.
 
